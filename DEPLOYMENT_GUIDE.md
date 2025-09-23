@@ -1,19 +1,77 @@
-# Hana Voice SaaS - Deployment Guide
+# Hana Voice SaaS - Complete Deployment Guide
 
-## 🚀 **One-Click Render Deployment**
+## 🚀 **QUICK START DEPLOYMENT**
 
-### **Option 1: Direct Render Deploy (Recommended)**
+### **One-Click Render Deployment (Recommended)**
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-1. **Click the "Deploy to Render" button above**
-2. **Connect your GitHub repository**
-3. **Render will automatically detect the `render.yaml` configuration**
-4. **Set the following environment variables in Render dashboard:**
+**Steps:**
+1. Click the "Deploy to Render" button above
+2. Connect your GitHub repository
+3. Render will automatically detect the `render.yaml` configuration
+4. Set the required environment variables in Render dashboard
 
-### **Required Environment Variables**
+### **Manual Deployment Setup**
+```bash
+# Clone the repository
+git clone https://github.com/a7isss/hana-voice-saas.git
+cd hana-voice-saas
 
-#### **API Service (`hana-voice-api`)**
+# Set up environment variables
+cp config/environment.example .env
+# Edit .env with your actual API keys and settings
+
+# Deploy to Render
+# Connect your GitHub repository to Render
+# Render will automatically deploy all services
 ```
+
+---
+
+## 📋 **PREREQUISITES**
+
+### **Required Accounts**
+- **Supabase Account**: For database and authentication ([supabase.com](https://supabase.com))
+- **OpenAI API Key**: For voice processing ([platform.openai.com](https://platform.openai.com))
+- **Render Account**: For deployment ([render.com](https://render.com))
+- **FreePBX Server**: Optional, for telephony integration
+
+### **Technical Requirements**
+- **GitHub Repository**: Code must be pushed to GitHub
+- **Domain**: Optional custom domain for production
+- **SSL Certificate**: Automatically provided by Render
+
+---
+
+## 🏗️ **ARCHITECTURE MIGRATION SUMMARY**
+
+### **From Monolithic to Microservices**
+**Previous Architecture:**
+- Single FastAPI application (`main.py`)
+- React dashboard in `dashboard/` directory
+- Direct PostgreSQL connection
+
+**Current Architecture:**
+- **API Service**: FastAPI gateway (`api-service/`)
+- **Voice Service**: TTS/STT processing (`voice-service/`)
+- **Data Service**: Excel export (`data-service/`)
+- **Frontend**: Next.js 15 dashboard (`frontend/`)
+- **Supabase Integration**: Scalable database and auth
+
+### **Key Benefits of New Architecture**
+- **Scalability**: Independent service scaling
+- **Maintainability**: Clear separation of concerns
+- **Performance**: Optimized resource allocation
+- **Reliability**: Service isolation prevents cascading failures
+
+---
+
+## 🔧 **ENVIRONMENT CONFIGURATION**
+
+### **Environment Variables Setup**
+
+#### **API Service Configuration**
+```bash
 JWT_SECRET_KEY=your-super-secret-jwt-key
 SUPABASE_URL=your-supabase-project-url
 SUPABASE_KEY=your-supabase-anon-key
@@ -23,63 +81,33 @@ FREEPBX_USERNAME=your-ami-username
 FREEPBX_PASSWORD=your-ami-password
 ```
 
-#### **Voice Service (`hana-voice-service`)**
-```
+#### **Voice Service Configuration**
+```bash
 OPENAI_API_KEY=your-openai-api-key
 SUPABASE_URL=your-supabase-project-url
 SUPABASE_KEY=your-supabase-anon-key
 ```
 
-#### **Frontend (`hana-voice-frontend`)**
-```
+#### **Frontend Configuration**
+```bash
 NEXT_PUBLIC_API_URL=https://hana-voice-api.onrender.com
 NODE_ENV=production
 ```
 
-### **Option 2: Manual Render Setup**
-
-1. **Create a new Render account** at [render.com](https://render.com)
-2. **Connect your GitHub repository**
-3. **Render will automatically detect the multi-service setup**
-4. **Each service will be deployed independently**
-
-## 📋 **Pre-Deployment Checklist**
-
-### **Before Deploying:**
-- [ ] Create Supabase project at [supabase.com](https://supabase.com)
-- [ ] Run the database schema: `supabase_schema.sql`
-- [ ] Get OpenAI API key from [platform.openai.com](https://platform.openai.com)
-- [ ] Configure FreePBX server (if using telephony)
-- [ ] Set up custom domain (optional)
-
-### **GitHub Repository Setup:**
-- [ ] Push code to GitHub repository
-- [ ] Ensure `render.yaml` is in the root directory
-- [ ] Verify all services have proper `requirements.txt`/`package.json`
-
-## 🔧 **Environment Configuration**
-
-### **Local Development (.env file)**
+### **Local Development Setup**
 ```bash
-# Copy from config/environment.example
+# Copy environment template
 cp config/environment.example .env
 
 # Fill in your actual values
-JWT_SECRET_KEY=your-secret-key
-SUPABASE_URL=your-project-url
-SUPABASE_KEY=your-anon-key
-OPENAI_API_KEY=your-openai-key
-FREEPBX_HOST=your-freepbx-host
+# Use development keys for local testing
 ```
 
-### **Render Environment Variables**
-- Set via Render dashboard for each service
-- Use `sync: false` for sensitive keys (they won't be shared between services)
-- Use `generateValue: true` for JWT_SECRET_KEY (Render will auto-generate)
+---
 
-## 🗃️ **Database Setup**
+## 🗃️ **DATABASE SETUP**
 
-### **Supabase Configuration:**
+### **Supabase Configuration**
 1. **Create new project** at [supabase.com](https://supabase.com)
 2. **Get connection details** from Project Settings → Database
 3. **Run the schema:**
@@ -88,7 +116,7 @@ FREEPBX_HOST=your-freepbx-host
    -- into the Supabase SQL editor and run it
    ```
 
-### **Database Tables Created:**
+### **Database Tables Created**
 - `profiles` - User accounts and credits
 - `institutions` - Healthcare clients
 - `customers` - Patients for calling
@@ -97,57 +125,122 @@ FREEPBX_HOST=your-freepbx-host
 - `credit_transactions` - Billing history
 - `audio_files` - Cached TTS audio
 
-## 🌐 **Custom Domain Setup (Optional)**
+### **Row Level Security (RLS)**
+- **Enabled by default** for data protection
+- **Policies configured** for multi-tenant isolation
+- **Admin access** for super admin operations
 
-### **Steps for Custom Domain:**
-1. **Purchase domain** from your preferred registrar
-2. **In Render dashboard**, go to your service → Settings → Custom Domains
-3. **Add your domain** (e.g., hana-voice.com)
-4. **Update DNS records** as instructed by Render
+---
 
-### **Recommended DNS Configuration:**
+## 🌐 **RENDER DEPLOYMENT CONFIGURATION**
+
+### **Multi-Service Architecture in render.yaml**
+```yaml
+services:
+  # API Service (Main Gateway)
+  - type: web
+    name: hana-voice-api
+    env: python
+    plan: standard
+    buildCommand: cd api-service && pip install -r requirements.txt
+    startCommand: cd api-service && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Voice Processing Service
+  - type: web
+    name: hana-voice-service
+    env: python
+    plan: standard
+    buildCommand: cd voice-service && pip install -r requirements.txt
+    startCommand: cd voice-service && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Data Processing Service
+  - type: web
+    name: hana-data-service
+    env: python
+    plan: standard
+    buildCommand: cd data-service && pip install -r requirements.txt
+    startCommand: cd data-service && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Frontend (Next.js)
+  - type: web
+    name: hana-voice-frontend
+    env: node
+    plan: standard
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    healthCheckPath: /
+
+databases:
+  - name: hana-voice-db
+    plan: standard
+    databaseName: hana_voice
 ```
-A record: @ → 76.76.21.21
-CNAME: www → your-app.onrender.com
+
+### **Render Dashboard Setup**
+1. **Connect GitHub repository** to Render
+2. **Auto-detection**: Render will detect `render.yaml`
+3. **Environment variables**: Set in Render dashboard for each service
+4. **Custom domain**: Optional domain setup
+
+---
+
+## 🐳 **DOCKER CONFIGURATION**
+
+### **Service Docker Files**
+- **API Service**: `api-service/Dockerfile`
+- **Voice Service**: `voice-service/Dockerfile`
+- **Data Service**: `data-service/Dockerfile`
+- **Production Optimization**: `Dockerfile.production`
+
+### **Docker Compose for Local Development**
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  api-service:
+    build: ./api-service
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET_KEY=dev-secret
+      - SUPABASE_URL=your-supabase-url
+      - SUPABASE_KEY=your-supabase-key
+
+  voice-service:
+    build: ./voice-service
+    ports:
+      - "8001:8001"
+    environment:
+      - OPENAI_API_KEY=your-openai-key
+
+  data-service:
+    build: ./data-service
+    ports:
+      - "8002:8002"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-## 📊 **Monitoring & Analytics**
+---
 
-### **Render Dashboard Features:**
-- **Real-time logs** for each service
-- **Performance metrics** (CPU, memory, response times)
-- **Health checks** automatic monitoring
-- **Auto-scaling** based on traffic
+## 🔒 **SECURITY CONFIGURATION**
 
-### **Custom Monitoring:**
-- Health check endpoint: `/health`
-- Service status endpoints for each microservice
-- Database connection monitoring
-- Error tracking and alerting
-
-## 💰 **Cost Optimization**
-
-### **Render Pricing Tiers:**
-- **Free Tier**: Good for development and testing
-- **Standard Tier**: Recommended for production ($25-50/month)
-- **Pro Tier**: High traffic applications ($50-250/month)
-
-### **Cost-Saving Tips:**
-- Use Free tier for development
-- Scale down during low-traffic hours
-- Use Supabase free tier for small projects
-- Monitor OpenAI API usage to control costs
-
-## 🔒 **Security Configuration**
-
-### **Essential Security Steps:**
+### **Essential Security Steps**
 1. **Generate strong JWT secret** (Render will auto-generate)
 2. **Use HTTPS only** (enforced by Render)
 3. **Set up CORS properly** for your frontend domain
 4. **Implement rate limiting** in production
 5. **Regularly rotate API keys**
 
-### **Environment Security:**
+### **Production Security Settings**
 ```bash
 # Production security settings
 ENVIRONMENT=production
@@ -155,65 +248,151 @@ LOG_LEVEL=WARNING  # Reduce verbose logging in production
 JWT_SECRET_KEY=very-long-random-string  # 64+ characters
 ```
 
-## 🚨 **Troubleshooting**
+### **Environment Security**
+- **Secrets management** via Render environment variables
+- **No hardcoded credentials** in source code
+- **Database connection strings** securely managed
+- **API keys** stored as secrets
 
-### **Common Deployment Issues:**
+---
 
-#### **Build Failures:**
+## 📊 **MONITORING & ANALYTICS**
+
+### **Render Dashboard Features**
+- **Real-time logs** for each service
+- **Performance metrics** (CPU, memory, response times)
+- **Health checks** automatic monitoring
+- **Auto-scaling** based on traffic
+
+### **Custom Monitoring**
+- **Health check endpoints**: `/health` for each service
+- **Service status** monitoring
+- **Database connection** monitoring
+- **Error tracking** and alerting
+
+### **Health Check Endpoints**
+- API Service: `https://hana-voice-api.onrender.com/health`
+- Voice Service: `https://hana-voice-service.onrender.com/health`
+- Data Service: `https://hana-data-service.onrender.com/health`
+- Frontend: Built-in Next.js health checks
+
+---
+
+## 💰 **COST OPTIMIZATION**
+
+### **Render Pricing Tiers**
+- **Free Tier**: Good for development and testing
+- **Standard Tier**: Recommended for production ($25-50/month)
+- **Pro Tier**: High traffic applications ($50-250/month)
+
+### **Cost-Saving Tips**
+- Use Free tier for development
+- Scale down during low-traffic hours
+- Use Supabase free tier for small projects
+- Monitor OpenAI API usage to control costs
+
+### **OpenAI Cost Management**
+- **Audio caching** to reduce TTS API calls
+- **Efficient calling** with smart retry logic
+- **Batch processing** for optimized data exports
+- **Usage monitoring** to prevent unexpected charges
+
+---
+
+## 🚨 **TROUBLESHOOTING**
+
+### **Common Deployment Issues**
+
+#### **Build Failures**
 ```bash
 # Check build logs in Render dashboard
 # Common issues: missing dependencies, syntax errors
 ```
 
-#### **Database Connection Issues:**
+#### **Database Connection Issues**
 ```bash
 # Verify SUPABASE_URL and SUPABASE_KEY
 # Check Supabase project status
 # Test connection from local environment first
 ```
 
-#### **Service Communication Issues:**
+#### **Service Communication Issues**
 ```bash
 # Verify service URLs in environment variables
 # Check CORS settings
 # Test health check endpoints
 ```
 
-### **Health Check Endpoints:**
+### **Health Check Endpoints**
 - API Service: `https://hana-voice-api.onrender.com/health`
 - Voice Service: `https://hana-voice-service.onrender.com/health`
 - Data Service: `https://hana-data-service.onrender.com/health`
 
-## 🔄 **CI/CD Pipeline**
+### **Log Access**
+- **Render dashboard** for service logs
+- **Supabase logs** for database operations
+- **OpenAI usage** for API cost tracking
 
-### **Automatic Deploys:**
+---
+
+## 🔄 **CI/CD PIPELINE**
+
+### **Automatic Deploys**
 - Push to `main` branch triggers automatic deployment
 - Each service deploys independently
 - Health checks ensure successful deployment
 - Rollback on failure automatically
 
-### **Manual Deploys:**
+### **Manual Deploys**
 - Trigger via Render dashboard
 - Deploy specific commits
 - Preview deployments for testing
 
-## 📞 **Support & Maintenance**
+### **GitHub Integration**
+- **Repository connection** for automatic deployments
+- **Branch protection** for production stability
+- **Pull request previews** for testing
 
-### **Daily Monitoring:**
+---
+
+## 📞 **SUPPORT & MAINTENANCE**
+
+### **Daily Monitoring**
 - Check service health endpoints
 - Monitor credit usage and billing
 - Review error logs for issues
 - Backup database regularly
 
-### **Monthly Maintenance:**
+### **Monthly Maintenance**
 - Update dependencies
 - Review security settings
 - Optimize performance
 - Backup and archive old data
 
-## 🎯 **Success Metrics**
+### **Emergency Procedures**
+- **System down**: Switch to backup OpenAI keys
+- **Audio issues**: Regenerate corrupted files
+- **Database problems**: Use Supabase point-in-time restore
+- **Telephony issues**: Check FreePBX logs, restart services
 
-### **Deployment Success Checklist:**
+---
+
+## 🎯 **DEPLOYMENT CHECKLIST**
+
+### **Pre-Deployment Checklist**
+- [ ] Create Supabase project and run schema
+- [ ] Obtain OpenAI API key
+- [ ] Configure FreePBX server (if using telephony)
+- [ ] Set up custom domain (optional)
+- [ ] Push code to GitHub repository
+
+### **Environment Setup Checklist**
+- [ ] Set environment variables in Render dashboard
+- [ ] Verify Supabase database connection
+- [ ] Test OpenAI API key functionality
+- [ ] Configure telephony settings (if applicable)
+
+### **Post-Deployment Verification**
 - [ ] All services deploy without errors
 - [ ] Health checks pass (green status)
 - [ ] Database connections work
@@ -222,14 +401,50 @@ JWT_SECRET_KEY=very-long-random-string  # 64+ characters
 - [ ] Authentication works
 - [ ] Voice processing functional
 
-### **Performance Targets:**
-- API response time < 200ms
-- Service uptime > 99.5%
-- Voice processing latency < 2 seconds
-- Concurrent user support: 50+ users
+### **Production Readiness Checklist**
+- [ ] Security configuration completed
+- [ ] Monitoring and alerting set up
+- [ ] Backup procedures implemented
+- [ ] Performance testing completed
+- [ ] Documentation updated
 
 ---
 
-**Need Help?** Check Render documentation or create an issue in the GitHub repository.
+## 📈 **PERFORMANCE TARGETS**
 
-**Status**: Ready for production deployment 🚀
+### **Target Performance Metrics**
+- **API response time**: < 200ms
+- **Service uptime**: > 99.5%
+- **Voice processing latency**: < 2 seconds
+- **Concurrent user support**: 50+ users
+
+### **Scalability Testing**
+- **Horizontal scaling** with multiple service instances
+- **Load balancing** across Render services
+- **Database optimization** for high concurrency
+- **CDN integration** for static assets
+
+---
+
+## 🤝 **SUPPORT RESOURCES**
+
+### **Documentation**
+- **Technical Specification**: `TECHNICAL_SPECIFICATION.md`
+- **README**: `README.md` for quick start
+- **GitHub Repository**: Issue tracking and source code
+
+### **Community Support**
+- **GitHub Issues** for bug reports and feature requests
+- **Render Documentation** for deployment questions
+- **Supabase Documentation** for database operations
+
+### **Professional Support**
+- **Custom development** available
+- **Enterprise features** on request
+- **Training and onboarding** services
+
+---
+
+**Status**: Ready for Production Deployment 🚀
+
+This deployment guide provides complete instructions for deploying Hana Voice SaaS to Render cloud platform, including environment setup, security configuration, monitoring, and troubleshooting procedures.
