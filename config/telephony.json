@@ -1,0 +1,58 @@
+{
+  "telephony": {
+    "provider": "freepbx",
+    "freepbx": {
+      "host": "localhost",
+      "port": 5038,
+      "username": "${FREEPBX_USERNAME}",
+      "password": "${FREEPBX_PASSWORD}",
+      "timeout": 30,
+      "context": "from-internal",
+      "caller_id": "HanaVoiceSaaS",
+      "retry_attempts": 3,
+      "retry_delay": 5
+    },
+    "call_settings": {
+      "max_call_duration": 300,
+      "answer_timeout": 30,
+      "ring_timeout": 45,
+      "playback_delay": 2,
+      "silence_threshold": 500,
+      "audio_format": "wav",
+      "sample_rate": 8000,
+      "channels": 1
+    },
+    "saudi_specific": {
+      "country_code": "+966",
+      "number_format": "##########",
+      "area_codes": ["11", "12", "13", "14", "16", "17"],
+      "emergency_numbers": ["911", "112"],
+      "business_hours": {
+        "start": "08:00",
+        "end": "22:00",
+        "timezone": "Asia/Riyadh"
+      }
+    },
+    "audio_playback": {
+      "greeting_delay": 1,
+      "question_delay": 2,
+      "response_timeout": 10,
+      "max_audio_length": 60,
+      "volume_level": 0.8,
+      "compression": true
+    },
+    "monitoring": {
+      "call_logging": true,
+      "audio_recording": false,
+      "performance_metrics": true,
+      "error_tracking": true,
+      "health_check_interval": 60
+    },
+    "fallback_settings": {
+      "fallback_provider": "none",
+      "max_concurrent_calls": 10,
+      "circuit_breaker_threshold": 5,
+      "circuit_breaker_timeout": 300
+    }
+  }
+}

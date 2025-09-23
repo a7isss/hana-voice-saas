@@ -1,0 +1,119 @@
+services:
+  # API Service (Main Gateway)
+  - type: web
+    name: hana-voice-api
+    env: python
+    plan: standard
+    region: frankfurt
+    buildCommand: cd api-service && pip install -r requirements.txt
+    startCommand: cd api-service && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: SUPABASE_URL
+        fromDatabase:
+          name: hana-voice-db
+          property: connectionString
+      - key: SUPABASE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FREEPBX_HOST
+        sync: false
+      - key: FREEPBX_USERNAME
+        sync: false
+      - key: FREEPBX_PASSWORD
+        sync: false
+    healthCheckPath: /health
+
+  # Voice Processing Service
+  - type: web
+    name: hana-voice-service
+    env: python
+    plan: standard
+    region: frankfurt
+    buildCommand: cd voice-service && pip install -r requirements.txt
+    startCommand: cd voice-service && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        fromService:
+          name: hana-voice-api
+          type: web
+          envVarName: SUPABASE_URL
+      - key: SUPABASE_KEY
+        fromService:
+          name: hana-voice-api
+          type: web
+          envVarName: SUPABASE_KEY
+
+  # Data Processing Service
+  - type: web
+    name: hana-data-service
+    env: python
+    plan: standard
+    region: frankfurt
+    buildCommand: cd data-service && pip install -r requirements.txt
+    startCommand: cd data-service && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        fromService:
+          name: hana-voice-api
+          type: web
+          envVarName: SUPABASE_URL
+      - key: SUPABASE_KEY
+        fromService:
+          name: hana-voice-api
+          type: web
+          envVarName: SUPABASE_KEY
+
+  # Frontend (Next.js)
+  - type: web
+    name: hana-voice-frontend
+    env: node
+    plan: standard
+    region: frankfurt
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: hana-voice-api
+          type: web
+          envVarName: RENDER_EXTERNAL_URL
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: hana-voice-db
+    plan: standard
+    region: frankfurt
+    databaseName: hana_voice
+    user: hana_user
+
+# Environment variables for all services
+envVars:
+  - key: ENVIRONMENT
+    value: production
+  - key: LOG_LEVEL
+    value: INFO
+  - key: DEFAULT_LANGUAGE
+    value: ar
+  - key: DEFAULT_VOICE
+    value: nova
+  - key: DEFAULT_SPEED
+    value: "0.95"
+  - key: TIMEZONE
+    value: Asia/Riyadh
+
+# Custom domains (optional)
+# domains:
+#   - hana-voice.com
+#   - www.hana-voice.com
+
+# Cron jobs for maintenance (optional)
+# cronJobs:
+#   - name: cleanup-old-audio
+#     schedule: "0 2 * * *"  # Daily at 2 AM
+#     command: cd api-service && python -c "from src.storage.supabase_client import supabase_client; supabase_client.cleanup_old_audio()"

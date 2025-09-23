@@ -1,0 +1,16 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-dotenv==1.0.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+pydantic==2.5.0
+requests==2.31.0
+python-multipart==0.0.6
+pandas==2.1.3
+openpyxl==3.1.2
+openai==1.3.0
+supabase==1.0.3
+bcrypt==4.1.2
+python-jose[cryptography]==3.3.0
+# twilio==8.13.0  # Commented out for MVP simplification
+pyst2  # Asterisk Manager Interface for FreePBX

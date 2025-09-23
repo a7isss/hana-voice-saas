@@ -1,0 +1,52 @@
+{
+  "client_id": "king_faisal_hospital",
+  "name": "King Faisal Specialist Hospital",
+  "enabled": true,
+  "departments": {
+    "general_practitioner": {
+      "name": "General Practitioner",
+      "survey_template": "general_practitioner_v1",
+      "phone_numbers": ["+966112345678", "+966112345679"],
+      "enabled": true,
+      "working_hours": {
+        "start": "08:00",
+        "end": "20:00",
+        "days": ["sunday", "monday", "tuesday", "wednesday", "thursday", "saturday"]
+      }
+    },
+    "dental": {
+      "name": "Dental Clinic",
+      "survey_template": "dental_v1",
+      "phone_numbers": ["+966112345680"],
+      "enabled": true,
+      "working_hours": {
+        "start": "09:00",
+        "end": "18:00",
+        "days": ["sunday", "monday", "tuesday", "wednesday", "thursday"]
+      }
+    },
+    "emergency": {
+      "name": "Emergency Department",
+      "survey_template": "emergency_v1",
+      "phone_numbers": ["+966112345681"],
+      "enabled": true,
+      "working_hours": {
+        "start": "00:00",
+        "end": "23:59",
+        "days": ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+      }
+    }
+  },
+  "telephony": {
+    "provider": "twilio",
+    "account_sid": "your_twilio_account_sid",
+    "auth_token": "your_twilio_auth_token",
+    "phone_numbers": ["+966112345678", "+966112345679", "+966112345680", "+966112345681"],
+    "from_number": "+966112345678"
+  },
+  "timezone": "Asia/Riyadh",
+  "language": "ar-SA",
+  "max_daily_calls": 200,
+  "call_retry_attempts": 3,
+  "call_retry_delay_minutes": 120
+}

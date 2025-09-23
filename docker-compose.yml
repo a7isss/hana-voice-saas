@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  freepbx:
+    image: tiredofit/freepbx:latest
+    container_name: hana-freepbx
+    ports:
+      - "5080:80"       # FreePBX Web UI
+      - "5443:443"      # FreePBX Secure Web UI
+      - "5060:5060/udp" # SIP port (UDP)
+      - "5061:5061/tcp" # SIP TLS port (TCP)
+      - "5160:5160/udp" # SIP Alternate port
+      - "18000-18100:18000-18100/udp" # RTP ports
+    environment:
+      - DB_EMBEDDED=TRUE
+      - ASTERISK_VER=18
+      - TZ=Asia/Riyadh
+      - ENABLE_SMTP=TRUE
+      - RTP_START=18000
+      - RTP_FINISH=18100
+      - DEBUG_MODE=TRUE
+    volumes:
+      - freepbx_data:/data
+      - freepbx_sounds:/var/lib/asterisk/sounds
+      - freepbx_logs:/var/log
+    networks:
+      - hana-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/admin || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  hana-api:
+    build: .
+    container_name: hana-api
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/hana_v3
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=true
+      # API keys
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_SPEECH_API_KEY=${GOOGLE_SPEECH_API_KEY:-}
+      # FreePBX Configuration (simplified)
+      - FREE_PBX_HOST=freepbx
+      - FREE_PBX_USERNAME=admin
+      - FREE_PBX_PASSWORD=password
+      - FREE_PBX_API_TOKEN=${FREE_PBX_API_TOKEN:-dummy_token}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-dummy-for-mvp}
+      - GOOGLE_SPEECH_API_KEY=${GOOGLE_SPEECH_API_KEY:-dummy-google-api-key}
+      - GOOGLE_SERVICE_ACCOUNT_FILE=${GOOGLE_SERVICE_ACCOUNT_FILE:-/app/service_account/service_account.json}
+      - DEFAULT_VOICE_SERVICE=freepbx
+      - MAX_CALL_ATTEMPTS=3
+      - CALL_RETRY_DELAY_MINUTES=60
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - ./service_account:/app/service_account
+      - ./config:/app/config
+    depends_on:
+      - postgres
+      - freepbx
+    networks:
+      - hana-network
+    command: python -m debugpy --listen 0.0.0.0:5678 main.py
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: hana-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: hana_v3
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hana-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  freepbx_data:
+  freepbx_logs:
+  freepbx_sounds:
+
+networks:
+  hana-network:
+    driver: bridge

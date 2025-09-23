@@ -1,0 +1,163 @@
+name: 🚀 Deploy Hana Voice SaaS to Render
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Test production readiness
+  test:
+    name: 🧪 Production Readiness Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run production readiness checklist
+        run: |
+          python production_checklist.py
+
+      - name: Test core imports and database schema
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from storage.database import init_db
+          from core.ai_agent import call_coordinator
+          from core.audio_questionnaire import audio_questionnaire_processor
+          print('✅ All core components import successfully')
+          "
+
+  # Job 2: Deploy to Render (only on main branch push)
+  deploy:
+    name: 🚀 Deploy to Render
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Render using Webhook
+        run: |
+          # Use Render webhook URL stored as secret
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "🚀 Triggering Render deployment..."
+            curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+            echo "✅ Render deployment triggered"
+          else
+            echo "⚠️ RENDER_DEPLOY_HOOK_URL secret not configured"
+            exit 1
+          fi
+
+      - name: Wait for deployment to be ready
+        run: |
+          # Wait up to 10 minutes for deployment
+          echo "⏳ Waiting for Render deployment to complete..."
+          for i in {1..20}; do
+            if curl -f --max-time 10 ${{ secrets.RENDER_APP_URL }}/health > /dev/null 2>&1; then
+              echo "✅ Application is healthy and ready!"
+              break
+            else
+              echo "   Attempt $i: Application not ready yet..."
+              sleep 30
+            fi
+
+            if [ $i -eq 20 ]; then
+              echo "❌ Application failed to become ready within 10 minutes"
+              exit 1
+            fi
+          done
+
+      - name: Generate audio files (after successful deployment)
+        run: |
+          echo "🎵 Generating audio files..."
+          # Send request to generate audio files after deployment
+          if curl -X POST ${{ secrets.RENDER_APP_URL }}/admin/generate-audio-files \
+               -H "Authorization: Bearer ${{ secrets.ADMIN_API_TOKEN }}" \
+               --max-time 300; then
+            echo "✅ Audio files generated successfully"
+          else
+            echo "⚠️ Audio file generation failed, but deployment succeeded"
+          fi
+
+  # Job 3: Post-deployment monitoring (always run after deploy)
+  monitoring:
+    name: 📊 Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code for monitoring scripts
+        uses: actions/checkout@v4
+
+      - name: Run health check monitoring
+        run: |
+          echo "🏥 Running health checks..."
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.RENDER_APP_URL }}/health)
+
+          if [ "$HEALTH_STATUS" -eq 200 ]; then
+            echo "✅ Health check passed - Application is responding"
+
+            # Get basic system info
+            HEALTH_RESPONSE=$(curl -s ${{ secrets.RENDER_APP_URL }}/health)
+            echo "📊 Health response: $HEALTH_RESPONSE"
+          else
+            echo "❌ Health check failed with status: $HEALTH_STATUS"
+            exit 1
+          fi
+
+      - name: Verify database connectivity
+        run: |
+          echo "🗄️ Testing database connectivity..."
+          # This would require the application to expose a database test endpoint
+          # or use Render's database API if available
+          echo "✅ Database connectivity verification would go here"
+
+      - name: Send deployment notification
+        run: |
+          echo "📧 Deployment completed successfully"
+          echo "🔗 Application URL: ${{ secrets.RENDER_APP_URL }}"
+          echo "📝 Version: ${{ github.sha }}"
+
+  # Job 4: Rollback on failure (optional)
+  rollback:
+    name: 🔄 Rollback (Manual Trigger)
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Alert about deployment failure
+        run: |
+          echo "❌ Deployment failed!"
+          echo "📧 Manual intervention required"
+          echo "🔗 Check Render logs: https://dashboard.render.com/"
+          echo "📝 Commit: ${{ github.sha }}"
+
+      # Could add rollback steps here if needed
+      # - name: Rollback to previous version
+      #   run: curl -X POST https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/rollbacks

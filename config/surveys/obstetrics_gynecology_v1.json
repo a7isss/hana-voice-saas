@@ -1,0 +1,75 @@
+{
+  "id": "obstetrics_gynecology_v1",
+  "name": "استبيان طب التوليد والنساء - الإصدار 1",
+  "description": "استبيان لتقييم تجربة المرضى في قسم التوليد والنساء",
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "obgyn_q1",
+      "text": "هل كان طبيب التوليد/النساء متاحًا في الموعد المحدد؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 0
+    },
+    {
+      "id": "obgyn_q2",
+      "text": "هل شرح الطبيب حالتك الصحية بوضوح؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 1
+    },
+    {
+      "id": "obgyn_q3",
+      "text": "هل كانت الفحوصات والتحاليل شاملة ودقيقة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 2
+    },
+    {
+      "id": "obgyn_q4",
+      "text": "هل شعرت بالراحة والخصوصية خلال الكشف؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 3
+    },
+    {
+      "id": "obgyn_q5",
+      "text": "هل قدم الفريق الطبي الدعم النفسي اللازم؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 4
+    },
+    {
+      "id": "obgyn_q6",
+      "text": "هل كانت التعليمات للعناية الصحية واضحة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 5
+    },
+    {
+      "id": "obgyn_q7",
+      "text": "هل كانت الخدمة المقدمة محافظة على الخصوصية؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 6
+    },
+    {
+      "id": "obgyn_q8",
+      "text": "هل تنصح الآخرين بقسم التوليد والنساء؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 7
+    }
+  ],
+  "welcome_message": "مرحباً، أنا هناء. شكراً لوقتكم في الإجابة على استبيان تجربتكم.",
+  "closing_message": "شكراً جزيلاً لوقتك وآرائك القيمة. نتمنى لك دوام الصحة والعافية.",
+  "estimated_duration": 5
+}
