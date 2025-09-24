@@ -7,15 +7,6 @@ services:
     region: frankfurt
     buildCommand: pip install -r api-service/requirements.txt
     startCommand: cd api-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: JWT_SECRET_KEY
-        generateValue: true
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
     healthCheckPath: /health
 
   # Voice Processing Service
@@ -26,13 +17,7 @@ services:
     region: frankfurt
     buildCommand: pip install -r voice-service/requirements.txt
     startCommand: cd voice-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
+    healthCheckPath: /health
 
   # Data Processing Service
   - type: web
@@ -42,11 +27,7 @@ services:
     region: frankfurt
     buildCommand: pip install -r data-service/requirements.txt
     startCommand: cd data-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
+    healthCheckPath: /health
 
   # Frontend (Next.js)
   - type: web
@@ -56,20 +37,4 @@ services:
     region: frankfurt
     buildCommand: cd frontend && npm install && npm run build
     startCommand: cd frontend && npm start
-    envVars:
-      - key: NEXT_PUBLIC_API_URL
-        value: https://hana-voice-api.onrender.com
-      - key: NODE_ENV
-        value: production
     healthCheckPath: /
-
-# Global environment variables
-envVars:
-  - key: ENVIRONMENT
-    value: production
-  - key: LOG_LEVEL
-    value: INFO
-  - key: DEFAULT_LANGUAGE
-    value: ar
-  - key: DEFAULT_VOICE
-    value: nova
