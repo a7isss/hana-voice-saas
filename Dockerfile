@@ -1,36 +1,48 @@
-# Root Dockerfile for Hana Voice SaaS - Multi-service deployment
-# This Dockerfile is used by Render for service discovery and routing
+# Multi-service launcher for Hana Voice SaaS
+# This Dockerfile runs all services in a single container for Render deployment
 
-FROM alpine:latest
+FROM python:3.11-slim
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Set working directory
+WORKDIR /app
 
-# Create a simple health check script
-RUN echo '#!/bin/sh' > /health.sh && \
-    echo 'curl -f http://localhost:8000/health > /dev/null 2>&1 || exit 1' >> /health.sh && \
-    chmod +x /health.sh
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# This Dockerfile is primarily for Render service detection
-# Each microservice has its own Dockerfile in its respective directory:
-# - api-service/Dockerfile
-# - voice-service/Dockerfile  
-# - data-service/Dockerfile
-# - frontend/ (Next.js auto-detected by Render)
+# Copy all service requirements
+COPY api-service/requirements.txt /app/api-service/
+COPY voice-service/requirements.txt /app/voice-service/
+COPY data-service/requirements.txt /app/data-service/
 
-# Expose default port (Render will override with $PORT)
-EXPOSE 8000
+# Install Python dependencies for all services
+RUN pip install --no-cache-dir -r /app/api-service/requirements.txt
+RUN pip install --no-cache-dir -r /app/voice-service/requirements.txt
+RUN pip install --no-cache-dir -r /app/data-service/requirements.txt
 
-# Health check
+# Copy all service code
+COPY api-service/ /app/api-service/
+COPY voice-service/ /app/voice-service/
+COPY data-service/ /app/data-service/
+
+# Copy environment configuration
+COPY .env /app/.env
+
+# Create startup script
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'cd /app/api-service && python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 &\' >> /app/start.sh && \
+    echo 'cd /app/voice-service && python -m uvicorn src.main:app --host 0.0.0.0 --port 8001 &\' >> /app/start.sh && \
+    echo 'cd /app/data-service && python -m uvicorn src.main:app --host 0.0.0.0 --port 8002 &\' >> /app/start.sh && \
+    echo 'wait' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Expose ports
+EXPOSE 8000 8001 8002
+
+# Health check for API service (main entry point)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD /health.sh
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Simple startup script that indicates this is a multi-service project
-CMD echo "Hana Voice SaaS - Multi-service project detected by Render" && \
-    echo "Services:" && \
-    echo "- API Service: api-service/" && \
-    echo "- Voice Service: voice-service/" && \
-    echo "- Data Service: data-service/" && \
-    echo "- Frontend: frontend/" && \
-    echo "Render will deploy each service individually based on render.yaml" && \
-    tail -f /dev/null
+# Start all services
+CMD ["/app/start.sh"]
