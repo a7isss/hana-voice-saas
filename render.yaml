@@ -1,55 +1,41 @@
 services:
-  # API Service (Main Gateway)
+  # Next.js Application (Combined Frontend + API)
   - type: web
-    name: hana-voice-api
-    env: python
-    plan: free
-    region: frankfurt
-    buildCommand: |
-      find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true &&
-      find . -name "*.pyc" -delete 2>/dev/null || true &&
-      pip cache purge &&
-      pip install --no-cache-dir --force-reinstall -r api-service/requirements.txt &&
-      echo "✅ API Service dependencies installed successfully"
-    startCommand: cd api-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
-
-  # Voice Processing Service
-  - type: web
-    name: hana-voice-service
-    env: python
-    plan: free
-    region: frankfurt
-    buildCommand: |
-      find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true &&
-      find . -name "*.pyc" -delete 2>/dev/null || true &&
-      pip cache purge &&
-      pip install --no-cache-dir --force-reinstall -r voice-service/requirements.txt &&
-      echo "✅ Voice Service dependencies installed successfully"
-    startCommand: cd voice-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
-
-  # Data Processing Service
-  - type: web
-    name: hana-data-service
-    env: python
-    plan: free
-    region: frankfurt
-    buildCommand: |
-      find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true &&
-      find . -name "*.pyc" -delete 2>/dev/null || true &&
-      pip cache purge &&
-      pip install --no-cache-dir --force-reinstall -r data-service/requirements.txt &&
-      echo "✅ Data Service dependencies installed successfully"
-    startCommand: cd data-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
-
-  # Frontend (Next.js)
-  - type: web
-    name: hana-voice-frontend
+    name: hana-voice-saas
     env: node
     plan: free
     region: frankfurt
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && npm start
-    healthCheckPath: /
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/auth
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://piyrtitsyhesufkceqyy.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXJ0aXRzeWhlc3Vma2NlcXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTk3NTgsImV4cCI6MjA3NDI3NTc1OH0.Egoc-crtscBcWMzO9aH5VEp4_9Y5upS3Ae5zTGUE5Lc
+      - key: OPENAI_API_KEY
+        value: your-actual-openai-api-key-here  # SET THIS IN RENDER DASHBOARD
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: NEXT_PUBLIC_API_URL
+        value: https://hana-voice-saas.onrender.com
+      - key: FREEPBX_HOST
+        value: your-freepbx-host-here  # SET IN RENDER DASHBOARD
+      - key: FREEPBX_USERNAME
+        value: your-ami-username-here  # SET IN RENDER DASHBOARD
+      - key: FREEPBX_PASSWORD
+        value: your-ami-password-here  # SET IN RENDER DASHBOARD
+
+envVars:
+  - key: NEXT_PUBLIC_SUPABASE_URL
+    value: https://piyrtitsyhesufkceqyy.supabase.co
+  - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXJ0aXRzeWhlc3Vma2NlcXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTk3NTgsImV4cCI6MjA3NDI3NTc1OH0.Egoc-crtscBcWMzO9aH5VEp4_9Y5upS3Ae5zTGUE5Lc
+  - key: FREEPBX_HOST
+    value: your-freepbx-host-here  # SET IN RENDER DASHBOARD
+  - key: FREEPBX_USERNAME
+    value: your-ami-username-here  # SET IN RENDER DASHBOARD
+  - key: FREEPBX_PASSWORD
+    value: your-ami-password-here  # SET IN RENDER DASHBOARD
