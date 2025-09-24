@@ -27,15 +27,3 @@ services:
         value: your-ami-username-here  # SET IN RENDER DASHBOARD
       - key: FREEPBX_PASSWORD
         value: your-ami-password-here  # SET IN RENDER DASHBOARD
-
-envVars:
-  - key: NEXT_PUBLIC_SUPABASE_URL
-    value: https://piyrtitsyhesufkceqyy.supabase.co
-  - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXJ0aXRzeWhlc3Vma2NlcXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTk3NTgsImV4cCI6MjA3NDI3NTc1OH0.Egoc-crtscBcWMzO9aH5VEp4_9Y5upS3Ae5zTGUE5Lc
-  - key: FREEPBX_HOST
-    value: your-freepbx-host-here  # SET IN RENDER DASHBOARD
-  - key: FREEPBX_USERNAME
-    value: your-ami-username-here  # SET IN RENDER DASHBOARD
-  - key: FREEPBX_PASSWORD
-    value: your-ami-password-here  # SET IN RENDER DASHBOARD
