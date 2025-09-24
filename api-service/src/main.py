@@ -122,10 +122,11 @@ async def internal_error_handler(request, exc):
 
 if __name__ == "__main__":
     # Run the application
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=True if os.getenv("ENVIRONMENT") == "development" else False,
         log_level="info"
     )
