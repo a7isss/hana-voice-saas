@@ -5,10 +5,7 @@ services:
     env: python
     plan: free
     region: frankfurt
-    buildCommand: |
-      cd api-service && 
-      pip install -r requirements.txt &&
-      echo "✅ API Service dependencies installed"
+    buildCommand: pip install -r api-service/requirements.txt
     startCommand: cd api-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: JWT_SECRET_KEY
@@ -19,17 +16,7 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: FREEPBX_HOST
-        sync: false
-        optional: true
-      - key: FREEPBX_USERNAME
-        sync: false
-        optional: true
-      - key: FREEPBX_PASSWORD
-        sync: false
-        optional: true
     healthCheckPath: /health
-    autoDeploy: true
 
   # Voice Processing Service
   - type: web
@@ -37,26 +24,15 @@ services:
     env: python
     plan: free
     region: frankfurt
-    buildCommand: |
-      cd voice-service && 
-      pip install -r requirements.txt &&
-      echo "✅ Voice Service dependencies installed"
+    buildCommand: pip install -r voice-service/requirements.txt
     startCommand: cd voice-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
         sync: false
       - key: SUPABASE_URL
-        fromService:
-          name: hana-voice-api
-          type: web
-          envVarName: SUPABASE_URL
+        sync: false
       - key: SUPABASE_KEY
-        fromService:
-          name: hana-voice-api
-          type: web
-          envVarName: SUPABASE_KEY
-    healthCheckPath: /health
-    autoDeploy: true
+        sync: false
 
   # Data Processing Service
   - type: web
@@ -64,24 +40,13 @@ services:
     env: python
     plan: free
     region: frankfurt
-    buildCommand: |
-      cd data-service && 
-      pip install -r requirements.txt &&
-      echo "✅ Data Service dependencies installed"
+    buildCommand: pip install -r data-service/requirements.txt
     startCommand: cd data-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SUPABASE_URL
-        fromService:
-          name: hana-voice-api
-          type: web
-          envVarName: SUPABASE_URL
+        sync: false
       - key: SUPABASE_KEY
-        fromService:
-          name: hana-voice-api
-          type: web
-          envVarName: SUPABASE_KEY
-    healthCheckPath: /health
-    autoDeploy: true
+        sync: false
 
   # Frontend (Next.js)
   - type: web
@@ -89,31 +54,16 @@ services:
     env: node
     plan: free
     region: frankfurt
-    buildCommand: |
-      cd frontend && 
-      npm install && 
-      npm run build &&
-      echo "✅ Frontend built successfully"
+    buildCommand: cd frontend && npm install && npm run build
     startCommand: cd frontend && npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: hana-voice-api
-          type: web
-          envVarName: RENDER_EXTERNAL_URL
+        value: https://hana-voice-api.onrender.com
       - key: NODE_ENV
         value: production
     healthCheckPath: /
-    autoDeploy: true
 
-databases:
-  - name: hana-voice-db
-    plan: free
-    region: frankfurt
-    databaseName: hana_voice
-    user: hana_user
-
-# Global environment variables for all services
+# Global environment variables
 envVars:
   - key: ENVIRONMENT
     value: production
@@ -123,55 +73,3 @@ envVars:
     value: ar
   - key: DEFAULT_VOICE
     value: nova
-  - key: DEFAULT_SPEED
-    value: "0.95"
-  - key: TIMEZONE
-    value: Asia/Riyadh
-
-# Service discovery and auto-configuration
-serviceDiscovery:
-  enabled: true
-  apiService: hana-voice-api
-  frontendService: hana-voice-frontend
-
-# Build optimization
-buildSettings:
-  cacheEnabled: true
-  buildCachePath: /tmp/build-cache
-  nodeVersion: 18
-  pythonVersion: 3.11
-
-# Health check configuration
-healthChecks:
-  timeoutSeconds: 30
-  intervalSeconds: 60
-  maxFailures: 3
-
-# Auto-scaling (for future use)
-# autoScaling:
-#   minInstances: 1
-#   maxInstances: 3
-#   targetCPU: 70
-#   targetMemory: 512
-
-# Custom domains (optional - uncomment when ready)
-# domains:
-#   - hana-voice.com
-#   - www.hana-voice.com
-
-# Maintenance cron jobs (optional - uncomment when ready)
-# cronJobs:
-#   - name: cleanup-old-audio
-#     schedule: "0 2 * * *"  # Daily at 2 AM
-#     command: cd api-service && python -c "from src.storage.supabase_client import cleanup_old_audio; cleanup_old_audio()"
-
-# Deployment hooks
-deployHooks:
-  preDeploy:
-    - name: validate-environment
-      command: echo "Validating environment variables..."
-  postDeploy:
-    - name: health-check
-      command: curl -f https://hana-voice-api.onrender.com/health || exit 1
-    - name: frontend-check
-      command: curl -f https://hana-voice-frontend.onrender.com/ || exit 1
