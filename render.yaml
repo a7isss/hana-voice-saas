@@ -1,0 +1,55 @@
+services:
+  # API Service (Main Gateway)
+  - type: web
+    name: hana-voice-api
+    env: python
+    plan: free
+    region: frankfurt
+    buildCommand: |
+      find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true &&
+      find . -name "*.pyc" -delete 2>/dev/null || true &&
+      pip cache purge &&
+      pip install --no-cache-dir --force-reinstall -r api-service/requirements.txt &&
+      echo "✅ API Service dependencies installed successfully"
+    startCommand: cd api-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Voice Processing Service
+  - type: web
+    name: hana-voice-service
+    env: python
+    plan: free
+    region: frankfurt
+    buildCommand: |
+      find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true &&
+      find . -name "*.pyc" -delete 2>/dev/null || true &&
+      pip cache purge &&
+      pip install --no-cache-dir --force-reinstall -r voice-service/requirements.txt &&
+      echo "✅ Voice Service dependencies installed successfully"
+    startCommand: cd voice-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Data Processing Service
+  - type: web
+    name: hana-data-service
+    env: python
+    plan: free
+    region: frankfurt
+    buildCommand: |
+      find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true &&
+      find . -name "*.pyc" -delete 2>/dev/null || true &&
+      pip cache purge &&
+      pip install --no-cache-dir --force-reinstall -r data-service/requirements.txt &&
+      echo "✅ Data Service dependencies installed successfully"
+    startCommand: cd data-service && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Frontend (Next.js)
+  - type: web
+    name: hana-voice-frontend
+    env: node
+    plan: free
+    region: frankfurt
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    healthCheckPath: /
