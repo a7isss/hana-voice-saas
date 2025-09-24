@@ -1,0 +1,75 @@
+{
+  "id": "physical_therapy_v1",
+  "name": "استبيان العلاج الطبيعي - الإصدار 1",
+  "description": "استبيان لتقييم تجربة المرضى في قسم العلاج الطبيعي والتأهيل",
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "physical_therapy_q1",
+      "text": "هل كان أخصائي العلاج الطبيعي متاحًا في الموعد المحدد؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 0
+    },
+    {
+      "id": "physical_therapy_q2",
+      "text": "هل شرح الأخصائي خطة العلاج والتأهيل بوضوح؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 1
+    },
+    {
+      "id": "physical_therapy_q3",
+      "text": "هل كانت جلسات العلاج مفيدة ومناسبة لحالتك؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 2
+    },
+    {
+      "id": "physical_therapy_q4",
+      "text": "هل شعرت بالتحسن بعد جلسات العلاج الطبيعي؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 3
+    },
+    {
+      "id": "physical_therapy_q5",
+      "text": "هل قدم الأخصائي تمارين منزلية مناسبة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 4
+    },
+    {
+      "id": "physical_therapy_q6",
+      "text": "هل كانت المعدات والأجهزة متاحة وآمنة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 5
+    },
+    {
+      "id": "physical_therapy_q7",
+      "text": "هل كانت التعليمات للعناية الذاتية واضحة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 6
+    },
+    {
+      "id": "physical_therapy_q8",
+      "text": "هل تنصح الآخرين بقسم العلاج الطبيعي؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 7
+    }
+  ],
+  "welcome_message": "مرحباً، أنا هناء. شكراً لوقتكم في الإجابة على استبيان تجربتكم.",
+  "closing_message": "شكراً جزيلاً لوقتك وآرائك القيمة. نتمنى لك دوام الصحة والعافية.",
+  "estimated_duration": 5
+}

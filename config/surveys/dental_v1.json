@@ -1,0 +1,75 @@
+{
+  "id": "dental_v1",
+  "name": "استبيان طب الأسنان - الإصدار 1",
+  "description": "استبيان لتقييم تجربة المرضى في عيادة الأسنان",
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "dental_q1",
+      "text": "هل كان طبيب الأسنان متاحًا في الموعد المحدد؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 0
+    },
+    {
+      "id": "dental_q2",
+      "text": "هل شرح الطبيب العلاج المقترح بوضوح؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 1
+    },
+    {
+      "id": "dental_q3",
+      "text": "هل كانت العيادة نظيفة ومعقمة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 2
+    },
+    {
+      "id": "dental_q4",
+      "text": "هل شعرت بالراحة خلال العلاج؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 3
+    },
+    {
+      "id": "dental_q5",
+      "text": "هل كانت التعليمات بعد العلاج واضحة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 4
+    },
+    {
+      "id": "dental_q6",
+      "text": "هل كانت النتيجة النهائية مرضية؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 5
+    },
+    {
+      "id": "dental_q7",
+      "text": "هل قدم الفريق نصائح للعناية بالأسنان؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 6
+    },
+    {
+      "id": "dental_q8",
+      "text": "هل تنصح الآخرين بعيادة الأسنان؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 7
+    }
+  ],
+  "welcome_message": "مرحباً، أنا هناء. شكراً لوقتكم في الإجابة على استبيان تجربتكم.",
+  "closing_message": "شكراً جزيلاً لوقتك وآرائك القيمة. نتمنى لك دوام الصحة والعافية.",
+  "estimated_duration": 5
+}

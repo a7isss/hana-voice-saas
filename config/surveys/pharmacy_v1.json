@@ -1,0 +1,75 @@
+{
+  "id": "pharmacy_v1",
+  "name": "استبيان الصيدلية - الإصدار 1",
+  "description": "استبيان لتقييم تجربة المرضى في خدمات الصيدلية",
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "pharmacy_q1",
+      "text": "هل كان وقت انتظار الصيدلية معقولاً؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 0
+    },
+    {
+      "id": "pharmacy_q2",
+      "text": "هل شرح الصيدلي تعليمات الدواء بوضوح؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 1
+    },
+    {
+      "id": "pharmacy_q3",
+      "text": "هل كانت الأدوية متاحة ومجهزة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 2
+    },
+    {
+      "id": "pharmacy_q4",
+      "text": "هل أجاب الصيدلي على استفساراتك بشكل كاف؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 3
+    },
+    {
+      "id": "pharmacy_q5",
+      "text": "هل كانت التعليمات حول التفاعلات الدوائية واضحة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 4
+    },
+    {
+      "id": "pharmacy_q6",
+      "text": "هل شعرت أن الخدمة كانت مهنية؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 5
+    },
+    {
+      "id": "pharmacy_q7",
+      "text": "هل كانت أسعار الأدوية معقولة؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 6
+    },
+    {
+      "id": "pharmacy_q8",
+      "text": "هل تنصح الآخرين بالصيدلية؟",
+      "type": "yes_no",
+      "options": null,
+      "required": true,
+      "order": 7
+    }
+  ],
+  "welcome_message": "مرحباً، أنا هناء. شكراً لوقتكم في الإجابة على استبيان تجربتكم.",
+  "closing_message": "شكراً جزيلاً لوقتك وآرائك القيمة. نتمنى لك دوام الصحة والعافية.",
+  "estimated_duration": 5
+}
