@@ -7,12 +7,12 @@ const freepbxPassword = process.env.FREEPBX_PASSWORD;
 
 // Logger for debugging
 const logger = {
-  info: (message: string, data?: any) => console.log(`[TELEPHONY-API] ${new Date().toISOString()} INFO: ${message}`, data),
-  error: (message: string, error?: any) => console.error(`[TELEPHONY-API] ${new Date().toISOString()} ERROR: ${message}`, error),
-  warn: (message: string, data?: any) => console.warn(`[TELEPHONY-API] ${new Date().toISOString()} WARN: ${message}`, data)
+  info: (message: string, data?: unknown) => console.log(`[TELEPHONY-API] ${new Date().toISOString()} INFO: ${message}`, data),
+  error: (message: string, error?: unknown) => console.error(`[TELEPHONY-API] ${new Date().toISOString()} ERROR: ${message}`, error),
+  warn: (message: string, data?: unknown) => console.warn(`[TELEPHONY-API] ${new Date().toISOString()} WARN: ${message}`, data)
 };
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Health check endpoint for telephony service
     const pbxStatus = freepbxHost ? {

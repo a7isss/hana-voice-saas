@@ -4,11 +4,24 @@ import React, { useState } from 'react';
 import Button from '@/components/ui/button/Button';
 import Input from '@/components/form/input/InputField';
 
+interface TestResults {
+  audioGeneration?: unknown;
+  callInitiation?: unknown;
+  dataStorage?: unknown;
+  responses?: Array<{ questionId: number; response: string; confidence: number }>;
+  services?: {
+    voice: unknown;
+    telephony: unknown;
+    data: unknown;
+  };
+  connectivity?: string;
+}
+
 export default function DemoTestCallPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState('');
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
 
   const generateTestSurvey = () => {
     return {
@@ -309,20 +322,20 @@ export default function DemoTestCallPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 border rounded-lg">
                   <h3 className="font-medium">Voice Service</h3>
-                  <p className={`text-sm ${testResults.services.voice.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
-                    {testResults.services.voice.status}
+                  <p className={`text-sm ${(testResults.services?.voice as {status?: string})?.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
+                    {(testResults.services?.voice as {status?: string})?.status || 'unknown'}
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <h3 className="font-medium">Telephony Service</h3>
-                  <p className={`text-sm ${testResults.services.telephony.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
-                    {testResults.services.telephony.status}
+                  <p className={`text-sm ${(testResults.services?.telephony as {status?: string})?.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
+                    {(testResults.services?.telephony as {status?: string})?.status || 'unknown'}
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <h3 className="font-medium">Data Service</h3>
-                  <p className={`text-sm ${testResults.services.data.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
-                    {testResults.services.data.status}
+                  <p className={`text-sm ${(testResults.services?.data as {status?: string})?.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
+                    {(testResults.services?.data as {status?: string})?.status || 'unknown'}
                   </p>
                 </div>
               </div>
@@ -357,13 +370,13 @@ export default function DemoTestCallPage() {
               <div>
                 <h3 className="font-medium mb-2">Simulated Responses</h3>
                 <div className="space-y-2">
-                  {testResults.responses.map((response: any, index: number) => (
+                  {testResults.responses?.map((response, index) => (
                     <div key={index} className="flex justify-between items-center p-2 border rounded">
                       <span>Question {response.questionId}</span>
                       <span className="font-medium">{response.response}</span>
                       <span className="text-xs text-gray-500">({(response.confidence * 100).toFixed(0)}% confidence)</span>
                     </div>
-                  ))}
+                  )) ?? []}
                 </div>
               </div>
             </div>

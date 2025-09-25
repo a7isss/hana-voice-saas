@@ -13,17 +13,17 @@ const openai = new OpenAI({
   apiKey: openaiKey,
 });
 
-// Logger for debugging
-const logger = {
-  info: (message: string, data?: any) => console.log(`[VOICE-API] ${new Date().toISOString()} INFO: ${message}`, data),
-  error: (message: string, error?: any) => console.error(`[VOICE-API] ${new Date().toISOString()} ERROR: ${message}`, error),
-  warn: (message: string, data?: any) => console.warn(`[VOICE-API] ${new Date().toISOString()} WARN: ${message}`, data)
-};
+// Logger for debugging (commented out to avoid unused variable warning)
+// const logger = {
+//   info: (message: string, data?: unknown) => console.log(`[VOICE-API] ${new Date().toISOString()} INFO: ${message}`, data),
+//   error: (message: string, error?: unknown) => console.error(`[VOICE-API] ${new Date().toISOString()} ERROR: ${message}`, error),
+//   warn: (message: string, data?: unknown) => console.warn(`[VOICE-API] ${new Date().toISOString()} WARN: ${message}`, data)
+// };
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Health check endpoint
-    const models = await openai.models.list();
+    await openai.models.list();
     
     return NextResponse.json({
       status: 'healthy',

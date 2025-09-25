@@ -12,17 +12,17 @@ if (!supabaseUrl || !supabaseKey) {
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Logger for debugging
-const logger = {
-  info: (message: string, data?: any) => console.log(`[AUTH-API] ${new Date().toISOString()} INFO: ${message}`, data),
-  error: (message: string, error?: any) => console.error(`[AUTH-API] ${new Date().toISOString()} ERROR: ${message}`, error),
-  warn: (message: string, data?: any) => console.warn(`[AUTH-API] ${new Date().toISOString()} WARN: ${message}`, data)
-};
+// Logger for debugging (commented out to avoid unused variable warning)
+// const logger = {
+//   info: (message: string, data?: unknown) => console.log(`[AUTH-API] ${new Date().toISOString()} INFO: ${message}`, data),
+//   error: (message: string, error?: unknown) => console.error(`[AUTH-API] ${new Date().toISOString()} ERROR: ${message}`, error),
+//   warn: (message: string, data?: unknown) => console.warn(`[AUTH-API] ${new Date().toISOString()} WARN: ${message}`, data)
+// };
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Health check endpoint
-    const { data, error } = await supabase.from('clients').select('id').limit(1);
+    const { error } = await supabase.from('clients').select('id').limit(1);
     
     if (error) {
       return NextResponse.json(
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

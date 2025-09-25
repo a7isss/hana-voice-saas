@@ -13,17 +13,17 @@ if (!supabaseUrl || !supabaseKey) {
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Logger for debugging
-const logger = {
-  info: (message: string, data?: any) => console.log(`[DATA-API] ${new Date().toISOString()} INFO: ${message}`, data),
-  error: (message: string, error?: any) => console.error(`[DATA-API] ${new Date().toISOString()} ERROR: ${message}`, error),
-  warn: (message: string, data?: any) => console.warn(`[DATA-API] ${new Date().toISOString()} WARN: ${message}`, data)
-};
+// Logger for debugging (commented out to avoid unused variable warning)
+// const logger = {
+//   info: (message: string, data?: unknown) => console.log(`[DATA-API] ${new Date().toISOString()} INFO: ${message}`, data),
+//   error: (message: string, error?: unknown) => console.error(`[DATA-API] ${new Date().toISOString()} ERROR: ${message}`, error),
+//   warn: (message: string, data?: unknown) => console.warn(`[DATA-API] ${new Date().toISOString()} WARN: ${message}`, data)
+// };
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Health check endpoint
-    const { data, error } = await supabase.from('clients').select('id').limit(1);
+    const { error } = await supabase.from('clients').select('id').limit(1);
     
     if (error) {
       return NextResponse.json(
@@ -66,20 +66,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, clientId, startDate, endDate, language } = body;
+    const { action, clientId, startDate, endDate } = body;
 
     switch (action) {
       case 'export-survey-responses':
-        return await exportSurveyResponses(clientId, startDate, endDate, language);
+        return await exportSurveyResponses(clientId, startDate, endDate);
       
       case 'export-call-analytics':
-        return await exportCallAnalytics(clientId, startDate, endDate, language);
+        return await exportCallAnalytics(clientId, startDate, endDate, 'ar');
       
       case 'export-customer-list':
-        return await exportCustomerList(clientId, language);
+        return await exportCustomerList(clientId, 'ar');
       
       case 'get-summary-report':
-        return await getSummaryReport(clientId, language);
+        return await getSummaryReport(clientId);
       
       default:
         return NextResponse.json(
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
     }
-  } catch (error) {
-    console.error('Data export error:', error);
+  } catch {
+    console.error('Data export error');
     return NextResponse.json(
       { error: 'Failed to process data export request' },
       { status: 500 }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function exportSurveyResponses(clientId: string, startDate?: string, endDate?: string, language?: string) {
+async function exportSurveyResponses(clientId: string, startDate?: string, endDate?: string) {
   try {
     // Get survey responses from database
     let query = supabase.from('survey_responses').select('*').eq('client_id', clientId);
@@ -120,20 +120,10 @@ async function exportSurveyResponses(clientId: string, startDate?: string, endDa
 
     // Create Excel workbook
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(language === 'ar' ? 'التقرير' : 'Report');
+    const worksheet = workbook.addWorksheet('Report');
     
     // Define column headers
-    const columns = language === 'ar' ? [
-      { header: 'رقم المحادثة', key: 'conversation_id', width: 15 },
-      { header: 'رقم المريض', key: 'patient_id', width: 15 },
-      { header: 'القسم', key: 'department', width: 20 },
-      { header: 'رقم السؤال', key: 'question_id', width: 15 },
-      { header: 'نص السؤال', key: 'question_text', width: 30 },
-      { header: 'الإجابة', key: 'response', width: 15 },
-      { header: 'مستوى الثقة', key: 'confidence', width: 15 },
-      { header: 'تم الإجابة', key: 'answered', width: 15 },
-      { header: 'التاريخ والوقت', key: 'timestamp', width: 20 }
-    ] : [
+    const columns = [
       { header: 'Conversation ID', key: 'conversation_id', width: 15 },
       { header: 'Patient ID', key: 'patient_id', width: 15 },
       { header: 'Department', key: 'department', width: 20 },
@@ -162,16 +152,11 @@ async function exportSurveyResponses(clientId: string, startDate?: string, endDa
       });
     });
 
-    // Apply RTL formatting for Arabic
-    if (language === 'ar') {
-      worksheet.views = [{ rightToLeft: true }];
-    }
-
     // Generate Excel file
     const buffer = await workbook.xlsx.writeBuffer();
     
     // Create response
-    const filename = `survey_responses_${clientId}_${language || 'ar'}.xlsx`;
+    const filename = `survey_responses_${clientId}.xlsx`;
     
     return new NextResponse(buffer, {
       status: 200,
@@ -348,7 +333,7 @@ async function exportCustomerList(clientId: string, language?: string) {
   }
 }
 
-async function getSummaryReport(clientId: string, language?: string) {
+async function getSummaryReport(clientId: string) {
   try {
     // Get data for summary
     const { data: customers } = await supabase

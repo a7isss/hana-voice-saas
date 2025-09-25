@@ -53,10 +53,10 @@ export default function CallingRobotPage() {
         // Simulate call progress
         simulateCallProgress(result.totalPatients);
       } else {
-        const error = await response.json();
-        setCallStatus(`Call initiation failed: ${error.error}`);
+        const errorData = await response.json();
+        setCallStatus(`Call initiation failed: ${errorData.error}`);
       }
-    } catch (error) {
+    } catch {
       setCallStatus('Call initiation failed. Please try again.');
     }
   };
@@ -105,10 +105,10 @@ export default function CallingRobotPage() {
         const result = await response.json();
         setCallStatus(`Test call initiated: ${result.callId}`);
       } else {
-        const error = await response.json();
-        setCallStatus(`Test call failed: ${error.error}`);
+        const errorData = await response.json();
+        setCallStatus(`Test call failed: ${errorData.error}`);
       }
-    } catch (error) {
+    } catch {
       setCallStatus('Test call failed. Please try again.');
     } finally {
       setIsCalling(false);
