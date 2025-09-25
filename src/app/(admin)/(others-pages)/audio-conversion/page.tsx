@@ -19,7 +19,8 @@ export default function AudioConversionPage() {
     silenceThreshold: 3
   });
 
-  const handleJsonUpload = (files: FileList | null) => {
+  const handleJsonUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
       if (file.type === 'application/json') {
@@ -31,7 +32,8 @@ export default function AudioConversionPage() {
     }
   };
 
-  const handleConfigUpload = (files: FileList | null) => {
+  const handleConfigUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
       if (file.type === 'application/json') {
@@ -76,7 +78,7 @@ export default function AudioConversionPage() {
         const error = await response.json();
         setConversionStatus(`Conversion failed: ${error.error}`);
       }
-    } catch (error) {
+    } catch {
       setConversionStatus('Conversion failed. Please try again.');
     } finally {
       setIsConverting(false);

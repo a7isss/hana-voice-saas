@@ -24,7 +24,7 @@
     "autoprefixer": "^10.4.20",
     "exceljs": "^4.4.0",
     "flatpickr": "^4.6.13",
-    "next": "15.2.3",
+    "next": "^15.5.4",
     "openai": "^4.28.0",
     "react": "^19.0.0",
     "react-apexcharts": "^1.7.0",
