@@ -50,12 +50,8 @@ const othersItems: NavItem[] = [
       { name: "Calling Robot", path: "/calling-robot", pro: false },
       { name: "Demo Test Call", path: "/demo-test-call", pro: false },
       { name: "Audio Conversion", path: "/audio-conversion", pro: false },
+      { name: "Reports", path: "/reports", pro: false },
     ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    path: "/signin",
   },
 ];
 

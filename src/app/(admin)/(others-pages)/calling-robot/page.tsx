@@ -1,16 +1,72 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '@/components/ui/button/Button';
 import Input from '@/components/form/input/InputField';
+import Select from '@/components/form/Select';
+
+interface Question {
+  id: number;
+  text: string;
+  type: string;
+}
+
+interface TemplateQuestions {
+  total_questions: number;
+  questions: Question[];
+}
+
+interface QuestionTemplate {
+  id: number;
+  template_name: string;
+  department: string;
+  language: string;
+  questions: TemplateQuestions;
+}
 
 export default function CallingRobotPage() {
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [isCalling, setIsCalling] = useState(false);
   const [callStatus, setCallStatus] = useState('');
   const [callsCompleted, setCallsCompleted] = useState(0);
+  const [callsPending, setCallsPending] = useState(0);
+  const [callsFailed, setCallsFailed] = useState(0);
   const [currentPatient, setCurrentPatient] = useState('');
+  const [currentPhoneNumber, setCurrentPhoneNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [templates, setTemplates] = useState<QuestionTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedTemplateData, setSelectedTemplateData] = useState<QuestionTemplate | null>(null);
+  const [callHistory, setCallHistory] = useState<Array<{
+    patient: string;
+    phone: string;
+    status: 'pending' | 'completed' | 'failed';
+    timestamp: string;
+  }>>([]);
+
+  // Fetch templates from database
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch('/api/data?action=get-templates');
+        if (response.ok) {
+          const data = await response.json();
+          setTemplates(data.templates || []);
+        }
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+  // Handle template selection
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = templates.find(t => t.id.toString() === templateId);
+    setSelectedTemplateData(template || null);
+  };
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -31,12 +87,18 @@ export default function CallingRobotPage() {
       return;
     }
 
+    if (!selectedTemplate) {
+      setCallStatus('Please select a survey template first');
+      return;
+    }
+
     setIsCalling(true);
     setCallStatus('Starting automated calls...');
 
     try {
       const formData = new FormData();
       formData.append('excelFile', excelFile);
+      formData.append('templateId', selectedTemplate);
 
       const response = await fetch('/api/telephony', {
         method: 'POST',
@@ -45,7 +107,7 @@ export default function CallingRobotPage() {
 
       if (response.ok) {
         const result = await response.json();
-        setCallStatus(`Calling initiated for ${result.totalPatients} patients`);
+        setCallStatus(`Calling initiated for ${result.totalPatients} patients using template: ${selectedTemplateData?.template_name || 'Unknown'}`);
         
         // Simulate call progress
         simulateCallProgress(result.totalPatients);
@@ -60,17 +122,48 @@ export default function CallingRobotPage() {
 
   const simulateCallProgress = (totalPatients: number) => {
     let completed = 0;
+    let failed = 0;
+    let pending = totalPatients;
+    
+    setCallsPending(pending);
+    setCallsFailed(failed);
+    setCallsCompleted(completed);
+    
     const interval = setInterval(() => {
-      completed++;
-      setCallsCompleted(completed);
-      setCurrentPatient(`Patient ${completed}`);
+      // Simulate call outcomes
+      const isSuccess = Math.random() > 0.2; // 80% success rate
       
-      if (completed >= totalPatients) {
+      if (isSuccess) {
+        completed++;
+        setCallsCompleted(completed);
+        setCallHistory(prev => [...prev, {
+          patient: `Patient ${completed}`,
+          phone: `+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`,
+          status: 'completed',
+          timestamp: new Date().toLocaleString()
+        }]);
+      } else {
+        failed++;
+        setCallsFailed(failed);
+        setCallHistory(prev => [...prev, {
+          patient: `Patient ${completed + failed}`,
+          phone: `+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`,
+          status: 'failed',
+          timestamp: new Date().toLocaleString()
+        }]);
+      }
+      
+      pending = totalPatients - completed - failed;
+      setCallsPending(pending);
+      setCurrentPatient(`Patient ${completed + failed + 1}`);
+      setCurrentPhoneNumber(`+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`);
+      
+      if (completed + failed >= totalPatients) {
         clearInterval(interval);
         setIsCalling(false);
-        setCallStatus(`All ${totalPatients} calls completed`);
+        setCallStatus(`Calls completed: ${completed} successful, ${failed} failed`);
       }
-    }, 2000); // Simulate 2 seconds per call
+    }, 3000); // Simulate 3 seconds per call
   };
 
   const testSingleCall = async () => {
@@ -127,6 +220,21 @@ export default function CallingRobotPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Survey Template
+              </label>
+              <Select
+                options={templates.map(template => ({
+                  value: template.id.toString(),
+                  label: template.template_name
+                }))}
+                placeholder="Choose a survey template"
+                onChange={handleTemplateChange}
+                className="mb-4"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Upload Excel File
               </label>
               <input
@@ -144,6 +252,29 @@ export default function CallingRobotPage() {
             {excelFile && (
               <div className="text-sm text-green-600">
                 Selected: {excelFile.name}
+              </div>
+            )}
+
+            {/* Template Preview */}
+            {selectedTemplateData && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Selected Template Preview
+                </h3>
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  <p><strong>Department:</strong> {selectedTemplateData.department}</p>
+                  <p><strong>Questions:</strong> {selectedTemplateData.questions?.total_questions || 0}</p>
+                  <div className="mt-2">
+                    <p className="font-medium">Questions:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {selectedTemplateData.questions?.questions?.map((q: Question, index: number) => (
+                        <li key={q.id} className="text-xs">
+                          {index + 1}. {q.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -181,7 +312,7 @@ export default function CallingRobotPage() {
       <div className="flex justify-center">
         <Button
           onClick={initiateCalls}
-          disabled={isCalling || !excelFile}
+          disabled={isCalling || !excelFile || !selectedTemplate}
           className="px-8 py-3"
           variant="primary"
         >
@@ -219,26 +350,117 @@ export default function CallingRobotPage() {
         </div>
       )}
 
-      {/* Call Progress */}
-      {isCalling && (
+      {/* Enhanced Call Progress */}
+      {(isCalling || callHistory.length > 0) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Call Progress</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Current Patient:</span>
-              <span className="text-sm">{currentPatient || 'Starting...'}</span>
+          <h2 className="text-lg font-semibold mb-4">Call Progress & Statistics</h2>
+          
+          {/* Real-time Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="text-blue-600 dark:text-blue-400 text-2xl mr-3">⟳</div>
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Pending</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{callsPending}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Calls Completed:</span>
-              <span className="text-sm">{callsCompleted}</span>
+            
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="text-green-600 dark:text-green-400 text-2xl mr-3">✓</div>
+                <div>
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">Completed</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{callsCompleted}</p>
+                </div>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-              <div 
-                className="bg-brand-600 h-2.5 rounded-full" 
-                style={{ width: `${(callsCompleted / 100) * 100}%` }}
-              ></div>
+            
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="text-red-600 dark:text-red-400 text-2xl mr-3">⚠</div>
+                <div>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">Failed</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">{callsFailed}</p>
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Progress Bar */}
+          {isCalling && (
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Current Call: {currentPatient}</span>
+                <span className="text-sm text-gray-500">{currentPhoneNumber}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+                <div 
+                  className="bg-brand-600 h-3 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: `${((callsCompleted + callsFailed) / (callsCompleted + callsFailed + callsPending)) * 100 || 0}%` 
+                  }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0%</span>
+                <span>{Math.round(((callsCompleted + callsFailed) / (callsCompleted + callsFailed + callsPending)) * 100 || 0)}%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Call History */}
+          {callHistory.length > 0 && (
+            <div>
+              <h3 className="text-md font-semibold mb-3">Recent Calls</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Patient
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Phone
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Time
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
+                    {callHistory.slice(-10).reverse().map((call, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          {call.patient}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          {call.phone}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            call.status === 'completed' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}>
+                            {call.status === 'completed' ? '✓ Completed' : '⚠ Failed'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {call.timestamp}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

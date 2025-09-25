@@ -20,15 +20,30 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 //   warn: (message: string, data?: unknown) => console.warn(`[DATA-API] ${new Date().toISOString()} WARN: ${message}`, data)
 // };
 
-export async function GET() {
-  // Simple health check that doesn't require any dependencies
-  // This ensures the health check passes even if dependencies aren't available
-  return NextResponse.json({
-    status: 'healthy',
-    service: 'hana-data-service',
-    message: 'Data service is running (dependencies may need configuration)',
-    timestamp: new Date().toISOString()
-  });
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const action = url.searchParams.get('action');
+    
+    if (action === 'get-templates') {
+      return await getQuestionTemplates();
+    }
+    
+    // Simple health check that doesn't require any dependencies
+    // This ensures the health check passes even if dependencies aren't available
+    return NextResponse.json({
+      status: 'healthy',
+      service: 'hana-data-service',
+      message: 'Data service is running (dependencies may need configuration)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('GET request error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process GET request' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -135,6 +150,29 @@ async function exportSurveyResponses(clientId: string, startDate?: string, endDa
     });
   } catch (error) {
     throw error;
+  }
+}
+
+async function getQuestionTemplates() {
+  try {
+    // Get all question templates from database
+    const { data: templates, error } = await supabase
+      .from('question_templates')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      templates: templates || [],
+      total: templates?.length || 0
+    });
+  } catch (error) {
+    console.error('Error fetching question templates:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch question templates' },
+      { status: 500 }
+    );
   }
 }
 
