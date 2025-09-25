@@ -1,173 +1,170 @@
-# TailAdmin Next.js - Free Next.js Tailwind Admin Dashboard Template
+# Hana Voice SaaS - Healthcare Voice Automation Platform
 
-TailAdmin is a free and open-source admin dashboard template built on **Next.js and Tailwind CSS** providing developers with everything they need to create a feature-rich and data-driven: back-end, dashboard, or admin panel solution for any sort of web project.
+![Hana Voice SaaS Dashboard](./banner.png)
 
-![TailAdmin - Next.js Dashboard Preview](./banner.png)
+Hana Voice SaaS is a comprehensive healthcare voice automation platform designed specifically for Saudi Arabian healthcare providers. The system automates patient outreach through voice calls, conducts health surveys in Arabic, and provides detailed analytics and reporting.
 
-With TailAdmin Next.js, you get access to all the necessary dashboard UI components, elements, and pages required to build a high-quality and complete dashboard or admin panel. Whether you're building a dashboard or admin panel for a complex web application or a simple website. 
+## 🎯 Key Features
 
-TailAdmin utilizes the powerful features of **Next.js 15** and common features of Next.js such as server-side rendering (SSR), static site generation (SSG), and seamless API route integration. Combined with the advancements of **React 19** and the robustness of **TypeScript**, TailAdmin is the perfect solution to help get your project up and running quickly.
+- **Automated Voice Calls**: Initiate automated calls to patients for health surveys
+- **Multilingual Support**: Primary support for Arabic with RTL text formatting
+- **Real-time Analytics**: Export call analytics and survey responses in Excel format
+- **Healthcare Compliance**: Designed for Saudi healthcare regulations and standards
+- **Scalable Architecture**: Built on modern serverless architecture with Next.js
 
-## Overview
-
-TailAdmin provides essential UI components and layouts for building feature-rich, data-driven admin dashboards and control panels. It's built on:
-
-- Next.js 15.x
-- React 19
-- TypeScript
-- Tailwind CSS V4
-
-### Quick Links
-- [✨ Visit Website](https://tailadmin.com)
-- [📄 Documentation](https://tailadmin.com/docs)
-- [⬇️ Download](https://tailadmin.com/download)
-- [🖌️ Figma Design File (Community Edition)](https://www.figma.com/community/file/1463141366275764364)
-- [⚡ Get PRO Version](https://tailadmin.com/pricing)
-
-### Demos
-- [Free Version](https://nextjs-free-demo.tailadmin.com)
-- [Pro Version](https://nextjs-demo.tailadmin.com)
-
-### Other Versions
-- [HTML Version](https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template)
-- [React Version](https://github.com/TailAdmin/free-react-tailwind-admin-dashboard)
-- [Vue.js Version](https://github.com/TailAdmin/vue-tailwind-admin-dashboard)
-
-## Installation
+## 🚀 Quick Start
 
 ### Prerequisites
-To get started with TailAdmin, ensure you have the following prerequisites installed and set up:
+- Node.js 18.x or later
+- Supabase account and project
+- OpenAI API account with credits
+- Freepbx server with AMI access (optional for testing)
 
-- Node.js 18.x or later (recommended to use Node.js 20.x or later)
-
-### Cloning the Repository
-Clone the repository using the following command:
+### 5-Minute Setup
 
 ```bash
-git clone https://github.com/TailAdmin/free-nextjs-admin-dashboard.git
+# Clone the repository
+git clone https://github.com/a7isss/hana-voice-saas.git
+cd hana-voice-saas
+
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.local.example .env.local
+# Edit .env.local with your actual values
+
+# Start development server
+npm run dev
 ```
 
-> Windows Users: place the repository near the root of your drive if you face issues while cloning.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-1. Install dependencies:
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-    > Use `--legacy-peer-deps` flag if you face peer-dependency error during installation.
+## 📚 Comprehensive Documentation
 
-2. Start the development server:
-    ```bash
-    npm run dev
-    # or
-    yarn dev
-    ```
+### Core Documentation
+- **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)** - Complete technical documentation
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Detailed setup and configuration guide
+- **[COMPREHENSIVE_FLOW_DOCUMENTATION.md](COMPREHENSIVE_FLOW_DOCUMENTATION.md)** - Architecture and flow analysis
+- **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Production deployment checklist
 
-## Components
+### API Documentation
+- **Authentication API** (`/api/auth`) - Client authentication and health checks
+- **Voice Processing API** (`/api/voice`) - Text-to-speech and speech-to-text services
+- **Data Export API** (`/api/data`) - Excel export and analytics
+- **Telephony API** (`/api/telephony`) - Call management and automation
 
-TailAdmin is a pre-designed starting point for building a web-based dashboard using Next.js and Tailwind CSS. The template includes:
+## 🏗️ Architecture Overview
 
-- Sophisticated and accessible sidebar
-- Data visualization components
-- Profile management and custom 404 page
-- Tables and Charts(Line and Bar)
-- Authentication forms and input elements
-- Alerts, Dropdowns, Modals, Buttons and more
-- Can't forget Dark Mode 🕶️
+```
+Frontend (Next.js) → API Routes → External Services → Database (Supabase)
+     ↓              ↓           ↓                   ↓
+   React Pages   /api/*      OpenAI/Freepbx     PostgreSQL
+```
 
-All components are built with React and styled using Tailwind CSS for easy customization.
+### Technology Stack
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, Supabase PostgreSQL
+- **AI Services**: OpenAI TTS/STT, GPT analysis
+- **Telephony**: Freepbx AMI integration
+- **Deployment**: Render platform
 
-## Feature Comparison
+## 🔧 Core Functionality
 
-### Free Version
-- 1 Unique Dashboard
-- 30+ dashboard components
-- 50+ UI elements
-- Basic Figma design files
-- Community support
+### Voice Automation
+- Arabic text-to-speech generation
+- Speech-to-text transcription for survey responses
+- Multi-language support with RTL text handling
+- Voice survey processing and analysis
 
-### Pro Version
-- 5 Unique Dashboards: Analytics, Ecommerce, Marketing, CRM, Stocks (more coming soon)
-- 400+ dashboard components and UI elements
-- Complete Figma design file
-- Email support
+### Call Management
+- Automated patient outreach calls
+- Excel-based patient list processing
+- Call progress tracking and analytics
+- Real-time call status monitoring
 
-To learn more about pro version features and pricing, visit our [pricing page](https://tailadmin.com/pricing).
+### Data Analytics
+- Excel export with Arabic RTL formatting
+- Survey response analysis and reporting
+- Call analytics and performance metrics
+- Healthcare compliance reporting
 
-## Changelog
+## 🚀 Deployment
 
-### Version 2.0.2 - [March 25, 2025]
+### Render Deployment
+The application is configured for deployment on Render with automatic builds from GitHub.
 
-- Upgraded to Next v15.2.3 for [CVE-2025-29927](https://nextjs.org/blog/cve-2025-29927) concerns
-- Included overrides vectormap for packages to prevent peer dependency errors during installation.
-- Migrated from react-flatpickr to flatpickr package for React 19 support
+```yaml
+# See render.yaml for deployment configuration
+services:
+  - type: web
+    name: hana-voice-saas
+    env: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+```
 
-### Version 2.0.1 - [February 27, 2025]
+### Environment Variables
+Required environment variables for production:
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase API key
+- `OPENAI_API_KEY` - OpenAI API key for voice services
+- `FREEPBX_*` - Freepbx telephony configuration
 
-#### Update Overview
+## 📊 Healthcare Compliance
 
-- Upgraded to Tailwind CSS v4 for better performance and efficiency.
-- Updated class usage to match the latest syntax and features.
-- Replaced deprecated class and optimized styles.
+### Saudi Arabia Specific Features
+- Arabic language support with proper RTL text handling
+- Healthcare survey templates for Saudi medical specialties
+- Data privacy compliance with local regulations
+- Multi-dialect Arabic speech recognition
 
-#### Next Steps
+### Supported Medical Specialties
+- Cardiology, Dermatology, Endocrinology
+- Emergency Medicine, ENT, General Practice
+- Laboratory, Neurology, Obstetrics/Gynecology
+- Oncology, Ophthalmology, Orthopedics
+- Pediatrics, Pharmacy, Physical Therapy
+- Psychiatry, Radiology, Surgery, Urology
 
-- Run npm install or yarn install to update dependencies.
-- Check for any style changes or compatibility issues.
-- Refer to the Tailwind CSS v4 [Migration Guide](https://tailwindcss.com/docs/upgrade-guide) on this release. if needed.
-- This update keeps the project up to date with the latest Tailwind improvements. 🚀
+## 🔒 Security Features
 
-### v2.0.0 (February 2025)
-A major update focused on Next.js 15 implementation and comprehensive redesign.
+- Environment-based configuration management
+- Supabase Row Level Security (RLS)
+- Input validation and sanitization
+- HTTPS enforcement in production
+- Regular security updates and monitoring
 
-#### Major Improvements
-- Complete redesign using Next.js 15 App Router and React Server Components
-- Enhanced user interface with Next.js-optimized components
-- Improved responsiveness and accessibility
-- New features including collapsible sidebar, chat screens, and calendar
-- Redesigned authentication using Next.js App Router and server actions
-- Updated data visualization using ApexCharts for React
+## 🤝 Contributing
 
-#### Breaking Changes
+We welcome contributions to improve Hana Voice SaaS. Please see our documentation for:
+- Code style guidelines
+- API development standards
+- Testing procedures
+- Security considerations
 
-- Migrated from Next.js 14 to Next.js 15
-- Chart components now use ApexCharts for React
-- Authentication flow updated to use Server Actions and middleware
+## 📞 Support
 
-[Read more](https://tailadmin.com/docs/update-logs/nextjs) on this release.
+### Documentation Resources
+- **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)** - Complete technical reference
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Step-by-step setup instructions
+- **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Production deployment guide
 
-#### Breaking Changes
-- Migrated from Next.js 14 to Next.js 15
-- Chart components now use ApexCharts for React
-- Authentication flow updated to use Server Actions and middleware
+### Community Support
+- GitHub Issues for bug reports and feature requests
+- Stack Overflow for technical questions
+- Render Community for deployment issues
 
-### v1.3.4 (July 01, 2024)
-- Fixed JSvectormap rendering issues
+## 📄 License
 
-### v1.3.3 (June 20, 2024)
-- Fixed build error related to Loader component
+Hana Voice SaaS is released under the MIT License.
 
-### v1.3.2 (June 19, 2024)
-- Added ClickOutside component for dropdown menus
-- Refactored sidebar components
-- Updated Jsvectormap package
+## 🙏 Acknowledgments
 
-### v1.3.1 (Feb 12, 2024)
-- Fixed layout naming consistency
-- Updated styles
+Built on the TailAdmin Next.js template with extensive modifications for healthcare voice automation in Saudi Arabia.
 
-### v1.3.0 (Feb 05, 2024)
-- Upgraded to Next.js 14
-- Added Flatpickr integration
-- Improved form elements
-- Enhanced multiselect functionality
-- Added default layout component
+---
 
-## License
-
-TailAdmin Next.js Free Version is released under the MIT License.
-
-## Support
-
-If you find this project helpful, please consider giving it a star on GitHub. Your support helps us continue developing and maintaining this template.
+*For detailed technical information, please refer to the comprehensive documentation files linked above.*
