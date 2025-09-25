@@ -40,10 +40,7 @@ export default function CallingRobotPage() {
 
       const response = await fetch('/api/telephony', {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: formData
       });
 
       if (response.ok) {
@@ -137,6 +134,7 @@ export default function CallingRobotPage() {
                 accept=".xlsx, .xls"
                 onChange={handleExcelUpload}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                aria-label="Upload Excel file with patient data"
               />
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Upload an Excel file with patient names and phone numbers
