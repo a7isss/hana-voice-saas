@@ -5,11 +5,22 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const router = useRouter();
+
+  // Auto-login for superadmin - goes directly to dashboard
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push("/");
+    }, 2000); // 2 second delay to show the login page briefly
+    
+    return () => clearTimeout(timer);
+  }, [router]);
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
