@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState,useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
   CalenderIcon,
@@ -11,6 +11,7 @@ import {
   HorizontaLDots,
   PieChartIcon,
   PlugInIcon,
+  LockIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 
@@ -58,6 +59,7 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -249,6 +251,25 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'logout' }),
+      });
+      
+      // Redirect to login page
+      router.push('/signin');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still redirect to login page even if API call fails
+      router.push('/signin');
+    }
+  };
+
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
@@ -336,6 +357,25 @@ const AppSidebar: React.FC = () => {
           </div>
         </nav>
         {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+        
+        {/* Logout Button */}
+        <div className="mt-auto pb-6">
+          <button
+            onClick={handleLogout}
+            className={`menu-item group menu-item-inactive cursor-pointer ${
+              !isExpanded && !isHovered
+                ? "lg:justify-center"
+                : "lg:justify-start"
+            }`}
+          >
+            <span className="menu-item-icon-inactive">
+              <LockIcon />
+            </span>
+            {(isExpanded || isHovered || isMobileOpen) && (
+              <span className="menu-item-text">Logout</span>
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   );

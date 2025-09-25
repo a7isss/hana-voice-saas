@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Environment validation (kept for reference)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-}
-
-// Logger for debugging (commented out to avoid unused variable warning)
-// const logger = {
-//   info: (message: string, data?: unknown) => console.log(`[AUTH-API] ${new Date().toISOString()} INFO: ${message}`, data),
-//   error: (message: string, error?: unknown) => console.error(`[AUTH-API] ${new Date().toISOString()} ERROR: ${message}`, error),
-//   warn: (message: string, data?: unknown) => console.warn(`[AUTH-API] ${new Date().toISOString()} WARN: ${message}`, data)
-// };
+import { AuthService } from '@/lib/auth';
 
 export async function GET() {
-  // Simple health check that always returns 200 for Render deployment
-  // This ensures the health check passes even if database tables aren't created yet
+  // Simple health check
   return NextResponse.json({
     status: 'healthy',
     service: 'hana-voice-api',
@@ -30,59 +15,73 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, clientId } = body;
+    const { action, username, password } = body;
 
     switch (action) {
-      case 'authenticate':
-        try {
-          // Simple authentication for MVP - bypass RLS issues
-          console.log('🔐 Authenticating client:', clientId);
-          
-          // For MVP, accept any client ID that matches our test pattern
-          if (clientId === 'test_client_123') {
-            console.log('✅ Authentication successful for test client');
-            return NextResponse.json({
-              authenticated: true,
-              client: {
-                id: 'test_client_123',
-                name: 'King Faisal Hospital',
-                department: 'Healthcare',
-                permissions: {
-                  voice_calls: true,
-                  data_export: true,
-                  analytics: true
-                }
-              }
-            });
-          } else {
-            console.log('❌ Invalid client ID:', clientId);
-            return NextResponse.json(
-              { error: 'Invalid client credentials' },
-              { status: 401 }
-            );
-          }
-        } catch (authError) {
-          console.error('❌ Authentication error:', authError);
+      case 'login':
+        if (!username || !password) {
           return NextResponse.json(
-            { error: 'Authentication failed' },
-            { status: 500 }
+            { error: 'Username and password are required' },
+            { status: 400 }
           );
         }
 
-      case 'validate_token':
-        // Validate JWT token (simplified)
-        const token = request.headers.get('authorization')?.replace('Bearer ', '');
-        if (!token) {
+        // Authenticate user
+        const isAuthenticated = AuthService.authenticate(username, password);
+        
+        if (isAuthenticated) {
+          // Generate session token
+          const token = AuthService.generateSessionToken(username);
+          
+          // Create response with cookie
+          const response = NextResponse.json({
+            success: true,
+            message: 'Login successful',
+            user: { username }
+          });
+
+          // Set HTTP-only cookie for session
+          response.cookies.set('auth-token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60, // 24 hours
+            path: '/'
+          });
+
+          return response;
+        } else {
           return NextResponse.json(
-            { error: 'No token provided' },
+            { error: 'Invalid username or password' },
             { status: 401 }
           );
         }
 
-        // In a real implementation, you would validate the JWT token
+      case 'logout':
+        // Clear the auth cookie
+        const logoutResponse = NextResponse.json({
+          success: true,
+          message: 'Logout successful'
+        });
+
+        logoutResponse.cookies.set('auth-token', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 0, // Expire immediately
+          path: '/'
+        });
+
+        return logoutResponse;
+
+      case 'validate':
+        // Validate current session
+        const isLoggedIn = AuthService.isAuthenticated(request);
+        const user = AuthService.getCurrentUser(request);
+
         return NextResponse.json({
-          valid: true,
-          message: 'Token is valid'
+          authenticated: isLoggedIn,
+          user: user ? { username: user.username } : null
         });
 
       default:
@@ -91,7 +90,8 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
     }
-  } catch {
+  } catch (error) {
+    console.error('Auth API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

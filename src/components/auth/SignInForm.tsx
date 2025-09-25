@@ -1,20 +1,77 @@
 "use client";
-import { ChevronLeftIcon } from "@/icons";
+import { ChevronLeftIcon, EyeIcon, EyeCloseIcon } from "@/icons";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
 
 export default function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/';
+  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Auto-login for superadmin - goes directly to dashboard
+  // Check if user is already logged in
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push("/");
-    }, 2000); // 2 second delay to show the login page briefly
-    
-    return () => clearTimeout(timer);
-  }, [router]);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'validate' }),
+        });
+        
+        const data = await response.json();
+        if (data.authenticated) {
+          router.push(redirect);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+    };
+
+    checkAuth();
+  }, [router, redirect]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'login',
+          username,
+          password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Login successful, redirect to intended page
+        router.push(redirect);
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -36,28 +93,72 @@ export default function SignInForm() {
               Welcome to Hana Voice SaaS Admin Panel
             </p>
           </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                {error}
+              </div>
+            )}
+            
             <div>
-              <div className="space-y-6">
-                <div className="text-center py-8">
-                  <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-brand-100 rounded-full dark:bg-brand-900">
-                    <svg className="w-8 h-8 text-brand-600 dark:text-brand-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Auto-login in progress...
-                  </h3>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    You will be redirected to the dashboard automatically
-                  </p>
-                  <div className="mt-4">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                      <div className="bg-brand-600 h-2.5 rounded-full animate-pulse" style={{width: '70%'}}></div>
-                    </div>
-                  </div>
-                </div>
+              <label htmlFor="username" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                placeholder="Enter your username"
+                required
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                  placeholder="Enter your password"
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  {showPassword ? <EyeCloseIcon /> : <EyeIcon />}
+                </button>
               </div>
             </div>
+            
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-4 py-2 font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+          
+          <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
+            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+              Demo Credentials
+            </h3>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              Use the credentials from your environment variables to login.
+            </p>
+          </div>
         </div>
       </div>
     </div>
