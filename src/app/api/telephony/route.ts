@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Environment validation for PBX/FreePBX integration
+// TODO: Configure these environment variables for real telephony
 const freepbxHost = process.env.FREEPBX_HOST;
 const freepbxUsername = process.env.FREEPBX_USERNAME;
 const freepbxPassword = process.env.FREEPBX_PASSWORD;
+const sipUsername = process.env.SIP_USERNAME;
+const sipPassword = process.env.SIP_PASSWORD;
+const sipHost = process.env.SIP_HOST;
+const sipTrunk = process.env.SIP_TRUNK;
 
-// Logger for debugging
-const logger = {
-  info: (message: string, data?: unknown) => console.log(`[TELEPHONY-API] ${new Date().toISOString()} INFO: ${message}`, data),
-  error: (message: string, error?: unknown) => console.error(`[TELEPHONY-API] ${new Date().toISOString()} ERROR: ${message}`, error),
-  warn: (message: string, data?: unknown) => console.warn(`[TELEPHONY-API] ${new Date().toISOString()} WARN: ${message}`, data)
-};
+// Telephony service status - DEVELOPMENT MODE
+const TELEPHONY_MODE = process.env.TELEPHONY_MODE || 'development'; // 'development' or 'production'
 
 export async function GET() {
   try {
@@ -18,25 +19,40 @@ export async function GET() {
     const pbxStatus = freepbxHost ? {
       host: freepbxHost,
       configured: true,
-      status: 'configuration_present'
+      status: 'configuration_present',
+      mode: TELEPHONY_MODE
     } : {
       configured: false,
       status: 'not_configured',
-      message: 'FreePBX environment variables not set'
+      message: 'FreePBX/SIP environment variables not set',
+      mode: TELEPHONY_MODE,
+      required_env_vars: {
+        freepbx_host: !!freepbxHost,
+        freepbx_username: !!freepbxUsername,
+        freepbx_password: !!freepbxPassword,
+        sip_username: !!sipUsername,
+        sip_password: !!sipPassword,
+        sip_host: !!sipHost,
+        sip_trunk: !!sipTrunk
+      }
     };
 
     return NextResponse.json({
-      status: 'healthy',
+      status: TELEPHONY_MODE === 'production' ? 'healthy' : 'development',
       service: 'hana-telephony-service',
       pbx_integration: pbxStatus,
-      timestamp: new Date().toISOString()
+      service_status: 'available_for_configuration',
+      timestamp: new Date().toISOString(),
+      development_note: TELEPHONY_MODE === 'development' ?
+        'Service in development mode. Configure SIP/FreePBX for production calls.' : null
     });
   } catch (error) {
     return NextResponse.json(
-      { 
-        status: 'unhealthy', 
+      {
+        status: 'unhealthy',
         service: 'hana-telephony-service',
-        error: (error as Error).message 
+        error: (error as Error).message,
+        mode: TELEPHONY_MODE
       },
       { status: 500 }
     );
@@ -79,7 +95,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    logger.error('Telephony processing error', error);
+    console.error('Telephony processing error:', error);
     return NextResponse.json(
       { error: 'Failed to process telephony request' },
       { status: 500 }
@@ -100,7 +116,7 @@ async function initiateCall(phoneNumber: string, clientId: string, audioUrl: str
     // Simulate PBX call initiation (replace with actual FreePBX AMI integration)
     const callId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    logger.info('Initiating call', {
+    console.log('Initiating call:', {
       phoneNumber,
       clientId,
       audioUrl,
@@ -175,7 +191,7 @@ async function testPBXConnection() {
       timestamp: new Date().toISOString()
     };
 
-    logger.info('PBX connection test', connectionTest);
+    console.log('PBX connection test:', connectionTest);
 
     return NextResponse.json({
       test: 'pbx_connection',

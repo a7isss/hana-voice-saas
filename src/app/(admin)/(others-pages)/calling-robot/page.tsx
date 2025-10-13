@@ -37,6 +37,8 @@ export default function CallingRobotPage() {
   const [templates, setTemplates] = useState<QuestionTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedTemplateData, setSelectedTemplateData] = useState<QuestionTemplate | null>(null);
+  const [selectedGreeting, setSelectedGreeting] = useState('');
+  const [greetings, setGreetings] = useState<any[]>([]);
   const [callHistory, setCallHistory] = useState<Array<{
     patient: string;
     phone: string;
@@ -44,21 +46,58 @@ export default function CallingRobotPage() {
     timestamp: string;
   }>>([]);
 
-  // Fetch templates from database
+  // Global pause controls
+  const [pauseConfig, setPauseConfig] = useState({
+    enabled: false,
+    startTime: '00:00',
+    endTime: '06:00',
+    message: 'Automated calling paused during off-hours. Calls will resume at 6:00 AM.'
+  });
+  const [isPaused, setIsPaused] = useState(false);
+  const [pauseOverride, setPauseOverride] = useState(false);
+
+  // Fetch audio sets and greetings from database
   useEffect(() => {
-    const fetchTemplates = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/data?action=get-templates');
-        if (response.ok) {
-          const data = await response.json();
-          setTemplates(data.templates || []);
+        // Fetch audio sets
+        const audioResponse = await fetch('/api/data?action=get-audio-sets');
+        if (audioResponse.ok) {
+          const audioData = await audioResponse.json();
+          // Transform audio sets to template format for compatibility
+          const transformedTemplates = audioData.audioSets?.map((audioSet: any) => ({
+            id: audioSet.id,
+            template_name: audioSet.name,
+            department: audioSet.department,
+            language: audioSet.language,
+            questions: {
+              total_questions: audioSet.audio_files?.filter((file: any) =>
+                file.id.startsWith('question_')
+              ).length || 0,
+              questions: audioSet.audio_files?.filter((file: any) =>
+                file.id.startsWith('question_')
+              ).map((file: any, index: number) => ({
+                id: index + 1,
+                text: file.text || file.description,
+                type: file.type || 'yes_no'
+              })) || []
+            }
+          })) || [];
+          setTemplates(transformedTemplates);
+        }
+
+        // Fetch company greetings
+        const greetingResponse = await fetch('/api/data?action=get-company-greetings');
+        if (greetingResponse.ok) {
+          const greetingData = await greetingResponse.json();
+          setGreetings(greetingData.greetings || []);
         }
       } catch (error) {
-        console.error('Error fetching templates:', error);
+        console.error('Error fetching data:', error);
       }
     };
 
-    fetchTemplates();
+    fetchData();
   }, []);
 
   // Handle template selection
@@ -109,8 +148,8 @@ export default function CallingRobotPage() {
         const result = await response.json();
         setCallStatus(`Calling initiated for ${result.totalPatients} patients using template: ${selectedTemplateData?.template_name || 'Unknown'}`);
         
-        // Simulate call progress
-        simulateCallProgress(result.totalPatients);
+        // Simulate call progress and save results
+        simulateAndSaveCallResults(result.totalPatients);
       } else {
         const errorData = await response.json();
         setCallStatus(`Call initiation failed: ${errorData.error}`);
@@ -120,48 +159,107 @@ export default function CallingRobotPage() {
     }
   };
 
-  const simulateCallProgress = (totalPatients: number) => {
+  const simulateAndSaveCallResults = async (totalPatients: number) => {
     let completed = 0;
     let failed = 0;
     let pending = totalPatients;
-    
+    const callResults = [];
+
     setCallsPending(pending);
     setCallsFailed(failed);
     setCallsCompleted(completed);
-    
-    const interval = setInterval(() => {
+
+    const callStartTime = new Date().toISOString();
+
+    const interval = setInterval(async () => {
       // Simulate call outcomes
       const isSuccess = Math.random() > 0.2; // 80% success rate
-      
+
+      const patientNum = completed + failed + 1;
+      const phoneNumber = `+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`;
+      const callResult: any = {
+        patientId: `patient_${patientNum}`,
+        phoneNumber,
+        conversationId: `conv_${Date.now()}_${patientNum}`,
+        startedAt: callStartTime,
+        completedAt: new Date().toISOString()
+      };
+
       if (isSuccess) {
         completed++;
         setCallsCompleted(completed);
+
+        // Simulate survey responses
+        callResult.status = 'completed';
+        callResult.duration = Math.floor(Math.random() * 180) + 30; // 30-210 seconds
+        callResult.responses = [
+          { questionId: 1, questionText: "هل تشعر بألم في الصدر؟", response: Math.random() > 0.5 ? "نعم" : "لا", confidence: Math.random() * 0.4 + 0.6 },
+          { questionId: 2, questionText: "هل تتناول أدويتك بانتظام؟", response: Math.random() > 0.3 ? "نعم" : "لا", confidence: Math.random() * 0.4 + 0.6 },
+          { questionId: 3, questionText: "هل تحتاج إلى موعد طبي؟", response: Math.random() > 0.6 ? "نعم" : "لا", confidence: Math.random() * 0.4 + 0.6 }
+        ];
+
         setCallHistory(prev => [...prev, {
-          patient: `Patient ${completed}`,
-          phone: `+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`,
+          patient: `Patient ${patientNum}`,
+          phone: phoneNumber,
           status: 'completed',
           timestamp: new Date().toLocaleString()
         }]);
       } else {
         failed++;
         setCallsFailed(failed);
+
+        callResult.status = 'failed';
+        callResult.duration = 0;
+        callResult.failureReason = Math.random() > 0.5 ? 'no_answer' : 'busy_signal';
+
         setCallHistory(prev => [...prev, {
-          patient: `Patient ${completed + failed}`,
-          phone: `+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`,
+          patient: `Patient ${patientNum}`,
+          phone: phoneNumber,
           status: 'failed',
           timestamp: new Date().toLocaleString()
         }]);
       }
-      
+
+      callResults.push(callResult);
+
       pending = totalPatients - completed - failed;
       setCallsPending(pending);
-      setCurrentPatient(`Patient ${completed + failed + 1}`);
+      setCurrentPatient(`Patient ${patientNum + 1}`);
       setCurrentPhoneNumber(`+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`);
-      
+
       if (completed + failed >= totalPatients) {
         clearInterval(interval);
         setIsCalling(false);
-        setCallStatus(`Calls completed: ${completed} successful, ${failed} failed`);
+
+        // Save batch results to database
+        const selectedGreeting = greetings.find(g => g.greeting_id === selectedGreeting);
+        const companyName = selectedGreeting ? selectedGreeting.name : 'Demo Hospital';
+
+        try {
+          const batchResult = await fetch('/api/data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'save-call-batch-results',
+              clientId: 'demo-client', // In real app, this would come from auth
+              companyName,
+              greetingId: selectedGreeting,
+              audioSetId: selectedTemplateData?.id,
+              callResults
+            })
+          });
+
+          if (batchResult.ok) {
+            const result = await batchResult.json();
+            setCallStatus(`Calls completed and saved under ${companyName}: ${completed} successful, ${failed} failed. Batch ID: ${result.batchId}`);
+          } else {
+            setCallStatus(`Calls completed (${completed} successful, ${failed} failed) but failed to save results: ${batchResult.statusText}`);
+          }
+        } catch (error) {
+          setCallStatus(`Calls completed (${completed} successful, ${failed} failed) but error saving: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
     }, 3000); // Simulate 3 seconds per call
   };
@@ -220,14 +318,30 @@ export default function CallingRobotPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Survey Template
+                Select Company Greeting
+              </label>
+              <Select
+                options={greetings.map(greeting => ({
+                  value: greeting.greeting_id,
+                  label: `${greeting.name} (${greeting.language.toUpperCase()})`
+                }))}
+                placeholder="Choose a company greeting"
+                defaultValue={selectedGreeting}
+                onChange={(value: string) => setSelectedGreeting(value)}
+                className="mb-4"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Audio Set
               </label>
               <Select
                 options={templates.map(template => ({
                   value: template.id.toString(),
-                  label: template.template_name
+                  label: `${template.template_name} (${template.language.toUpperCase()})`
                 }))}
-                placeholder="Choose a survey template"
+                placeholder="Choose an audio set"
                 onChange={handleTemplateChange}
                 className="mb-4"
               />
@@ -312,7 +426,7 @@ export default function CallingRobotPage() {
       <div className="flex justify-center">
         <Button
           onClick={initiateCalls}
-          disabled={isCalling || !excelFile || !selectedTemplate}
+          disabled={isCalling || !excelFile || !selectedTemplate || !selectedGreeting}
           className="px-8 py-3"
           variant="primary"
         >
@@ -463,6 +577,137 @@ export default function CallingRobotPage() {
           )}
         </div>
       )}
+
+      {/* Global Pause Configuration */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold mb-4">Global Pause Settings</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Configure automated calling pause periods to avoid calling during off-hours or holidays.
+          When enabled, calls will be paused and resumed automatically based on the time settings.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="pauseEnabled"
+                checked={pauseConfig.enabled}
+                onChange={(e) => setPauseConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                className="w-4 h-4 text-brand-600 bg-gray-100 border-gray-300 rounded focus:ring-brand-500 dark:focus:ring-brand-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label htmlFor="pauseEnabled" className="text-sm font-medium text-gray-900 dark:text-white">
+                Enable Global Pause
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Pause Start Time
+                </label>
+                <Input
+                  type="time"
+                  value={pauseConfig.startTime}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPauseConfig(prev => ({ ...prev, startTime: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Pause End Time
+                </label>
+                <Input
+                  type="time"
+                  value={pauseConfig.endTime}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPauseConfig(prev => ({ ...prev, endTime: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Pause Message (Optional)
+              </label>
+              <Input
+                type="text"
+                placeholder="Custom pause message..."
+                value={pauseConfig.message}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setPauseConfig(prev => ({ ...prev, message: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium">Current Status</h3>
+            <div className={`p-4 rounded-lg ${isPaused ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200' : 'bg-green-50 dark:bg-green-900/20 border border-green-200'}`}>
+              <div className="flex items-center">
+                <span className={`text-2xl mr-3 ${isPaused ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {isPaused ? '⏸️' : '▶️'}
+                </span>
+                <div>
+                  <p className={`font-medium ${isPaused ? 'text-yellow-800 dark:text-yellow-200' : 'text-green-800 dark:text-green-200'}`}>
+                    {isPaused ? 'Calls Currently Paused' : 'Calls Active'}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {isPaused ? pauseConfig.message : 'Automated calling is active'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {pauseOverride && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <span className="text-orange-600 dark:text-orange-400 mr-2">⚠️</span>
+                  <div>
+                    <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                      Override Active
+                    </p>
+                    <p className="text-xs text-orange-600 dark:text-orange-400">
+                      Paused period overridden by administrator
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => setIsPaused(true)}
+                disabled={!pauseConfig.enabled || isPaused}
+                className="flex-1"
+                variant="outline"
+                size="sm"
+              >
+                Manual Pause
+              </Button>
+              <Button
+                onClick={() => setIsPaused(false)}
+                disabled={!pauseConfig.enabled || !isPaused}
+                className="flex-1"
+                variant="outline"
+                size="sm"
+              >
+                Resume Calls
+              </Button>
+              <Button
+                onClick={() => setPauseOverride(!pauseOverride)}
+                className="flex-1"
+                variant={pauseOverride ? "outline" : "primary"}
+                size="sm"
+              >
+                {pauseOverride ? 'Disable Override' : 'Override Pause'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Sample Excel Structure */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

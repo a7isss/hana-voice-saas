@@ -24,11 +24,27 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
-    
+
     if (action === 'get-templates') {
       return await getQuestionTemplates();
     }
-    
+
+    if (action === 'get-audio-sets') {
+      return await getAudioSets(url.searchParams.get('clientId') || null);
+    }
+
+    if (action === 'get-company-greetings') {
+      return await getCompanyGreetings(url.searchParams.get('clientId') || null);
+    }
+
+    if (action === 'save-company-greeting') {
+      // Handle greeting save separately in POST
+      return NextResponse.json(
+        { error: 'Use POST method for saving company greetings' },
+        { status: 405 }
+      );
+    }
+
     // Simple health check that doesn't require any dependencies
     // This ensures the health check passes even if dependencies aren't available
     return NextResponse.json({
@@ -54,16 +70,25 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'export-survey-responses':
         return await exportSurveyResponses(clientId, startDate, endDate);
-      
+
       case 'export-call-analytics':
         return await exportCallAnalytics(clientId, startDate, endDate, 'ar');
-      
+
       case 'export-customer-list':
         return await exportCustomerList(clientId, 'ar');
-      
+
       case 'get-summary-report':
         return await getSummaryReport(clientId);
-      
+
+      case 'save-audio-set':
+        return await saveAudioSet(body);
+
+      case 'save-company-greeting':
+        return await saveCompanyGreeting(body);
+
+      case 'save-call-batch-results':
+        return await saveCallBatchResults(body);
+
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -339,6 +364,282 @@ async function exportCustomerList(clientId: string, language?: string) {
   }
 }
 
+async function getAudioSets(clientId?: string | null) {
+  try {
+    let query = supabase
+      .from('audio_sets')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: audioSets, error } = await query;
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      audioSets: audioSets || [],
+      total: audioSets?.length || 0
+    });
+  } catch (error) {
+    console.error('Error fetching audio sets:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch audio sets' },
+      { status: 500 }
+    );
+  }
+}
+
+async function getCompanyGreetings(clientId?: string | null) {
+  try {
+    let query = supabase
+      .from('company_greetings')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: greetings, error } = await query;
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      greetings: greetings || [],
+      total: greetings?.length || 0
+    });
+  } catch (error) {
+    console.error('Error fetching company greetings:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch company greetings' },
+      { status: 500 }
+    );
+  }
+}
+
+async function saveAudioSet(audioSetData: any) {
+  try {
+    const {
+      clientId,
+      setId,
+      name,
+      description,
+      language,
+      department,
+      version = '1.0',
+      configuration,
+      audioFiles,
+      surveyFlow,
+      metadata
+    } = audioSetData;
+
+    const { data, error } = await supabase
+      .from('audio_sets')
+      .insert({
+        client_id: clientId,
+        set_id: setId,
+        name: name,
+        description: description,
+        language: language || 'ar',
+        department: department,
+        version: version,
+        configuration: configuration || {},
+        audio_files: audioFiles || [],
+        survey_flow: surveyFlow || {},
+        metadata: metadata || {}
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      success: true,
+      audioSet: data,
+      message: 'Audio set saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving audio set:', error);
+    return NextResponse.json(
+      { error: 'Failed to save audio set' },
+      { status: 500 }
+    );
+  }
+}
+
+async function saveCompanyGreeting(greetingData: any) {
+  try {
+    const { greeting } = greetingData;
+
+    const { data, error } = await supabase
+      .from('company_greetings')
+      .insert({
+        name: greeting.name,
+        description: greeting.description,
+        greeting_id: greeting.greeting_id,
+        client_id: greeting.client_id,
+        language: greeting.language,
+        audio_file_url: greeting.audio_file_url,
+        duration: greeting.duration,
+        is_active: true,
+        created_at: greeting.created_at,
+        updated_at: greeting.updated_at
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      success: true,
+      greeting: data,
+      message: 'Company greeting saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving company greeting:', error);
+    return NextResponse.json(
+      { error: 'Failed to save company greeting' },
+      { status: 500 }
+    );
+  }
+}
+
+async function saveCallBatchResults(batchData: any) {
+  try {
+    const {
+      clientId,
+      companyName,
+      greetingId,
+      audioSetId,
+      callResults
+    } = batchData;
+
+    // Validate required parameters
+    if (!clientId || !companyName || !callResults || !Array.isArray(callResults)) {
+      return NextResponse.json(
+        { error: 'Client ID, company name, and call results array are required' },
+        { status: 400 }
+      );
+    }
+
+    const timestamp = new Date().toISOString();
+    const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Process all call results in the batch
+    const processedResults = {
+      batchId,
+      clientId,
+      companyName,
+      greetingId: greetingId || null,
+      audioSetId: audioSetId || null,
+      totalCalls: callResults.length,
+      completedCalls: callResults.filter(r => r.status === 'completed').length,
+      failedCalls: callResults.filter(r => r.status === 'failed').length,
+      createdAt: timestamp,
+      individualResults: callResults.map(result => ({
+        patientId: result.patientId || `patient_${Date.now()}_${Math.random()}`,
+        phoneNumber: result.phoneNumber,
+        conversationId: result.conversationId || `conv_${Date.now()}_${Math.random()}`,
+        status: result.status || 'unknown',
+        duration: result.duration || 0,
+        responses: result.responses || [],
+        startedAt: result.startedAt || timestamp,
+        completedAt: result.completedAt || timestamp,
+        failureReason: result.failureReason || null
+      }))
+    };
+
+    // Save batch summary to call_batches table (would need schema update)
+    const { error: batchError } = await supabase
+      .from('call_batches')
+      .insert({
+        batch_id: batchId,
+        client_id: clientId,
+        company_name: companyName,
+        greeting_id: greetingId,
+        audio_set_id: audioSetId,
+        total_calls: processedResults.totalCalls,
+        completed_calls: processedResults.completedCalls,
+        failed_calls: processedResults.failedCalls,
+        created_at: timestamp
+      });
+
+    // Save individual call results and responses
+    for (const result of processedResults.individualResults) {
+      // Save call log
+      const { error: callLogError } = await supabase
+        .from('call_logs')
+        .insert({
+          conversation_id: result.conversationId,
+          client_id: clientId,
+          patient_id: result.patientId,
+          phone_number: result.phoneNumber,
+          department: 'batch_call', // Could be derived from audio set
+          status: result.status,
+          call_duration: result.duration,
+          attempt_number: 1,
+          timestamp: result.startedAt
+        });
+
+      if (callLogError) {
+        console.error('Error saving call log:', callLogError);
+        // Continue processing other results
+      }
+
+      // Save survey responses if call completed
+      if (result.status === 'completed' && result.responses && result.responses.length > 0) {
+        const responsesToInsert = result.responses.map((response: any) => ({
+          conversation_id: result.conversationId,
+          client_id: clientId,
+          patient_id: result.patientId,
+          department: 'batch_call',
+          question_id: response.questionId || response.id,
+          question_text: response.questionText || response.text,
+          response: response.response || response.answer,
+          confidence: response.confidence || 0.8,
+          answered: true,
+          timestamp: result.completedAt
+        }));
+
+        const { error: responseError } = await supabase
+          .from('survey_responses')
+          .insert(responsesToInsert);
+
+        if (responseError) {
+          console.error('Error saving survey responses:', responseError);
+          // Continue processing other calls
+        }
+      }
+    }
+
+    if (batchError) {
+      throw batchError;
+    }
+
+    return NextResponse.json({
+      success: true,
+      batchId,
+      companyName,
+      totalCalls: processedResults.totalCalls,
+      completedCalls: processedResults.completedCalls,
+      failedCalls: processedResults.failedCalls,
+      message: `Batch results saved under ${companyName}. ${processedResults.completedCalls} successful calls, ${processedResults.failedCalls} failed calls.`
+    });
+
+  } catch (error) {
+    console.error('Error saving call batch results:', error);
+    return NextResponse.json(
+      { error: 'Failed to save call batch results' },
+      { status: 500 }
+    );
+  }
+}
+
 async function getSummaryReport(clientId: string) {
   try {
     // Get data for summary
@@ -346,12 +647,12 @@ async function getSummaryReport(clientId: string) {
       .from('customers')
       .select('*')
       .eq('client_id', clientId);
-    
+
     const { data: callLogs } = await supabase
       .from('call_logs')
       .select('*')
       .eq('client_id', clientId);
-    
+
     const { data: surveyResponses } = await supabase
       .from('survey_responses')
       .select('*')
@@ -363,16 +664,16 @@ async function getSummaryReport(clientId: string) {
     const completedCalls = callLogs?.filter(log => log.status === 'completed').length || 0;
     const failedCalls = callLogs?.filter(log => log.status === 'failed').length || 0;
     const totalResponses = surveyResponses?.length || 0;
-    
+
     const successRate = totalCalls > 0 ? (completedCalls / totalCalls * 100) : 0;
-    
+
     // Department breakdown
     const departments: Record<string, number> = {};
     customers?.forEach(customer => {
       const dept = customer.department || 'unknown';
       departments[dept] = (departments[dept] || 0) + 1;
     });
-    
+
     // Response analysis
     const yesResponses = surveyResponses?.filter(r => r.response === 'yes').length || 0;
     const noResponses = surveyResponses?.filter(r => r.response === 'no').length || 0;

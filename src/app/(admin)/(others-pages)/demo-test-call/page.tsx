@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '@/components/ui/button/Button';
 import Input from '@/components/form/input/InputField';
+import Select from '@/components/form/Select';
 
 interface TestResults {
   audioGeneration?: unknown;
@@ -17,11 +18,40 @@ interface TestResults {
   connectivity?: string;
 }
 
+interface AudioSet {
+  id: string;
+  set_id: string;
+  name: string;
+  description: string;
+  language: string;
+  department: string;
+  configuration: any;
+  audio_files: any[];
+}
+
 export default function DemoTestCallPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState('');
   const [testResults, setTestResults] = useState<TestResults | null>(null);
+  const [audioSets, setAudioSets] = useState<AudioSet[]>([]);
+  const [selectedAudioSet, setSelectedAudioSet] = useState('');
+
+  // Load available audio sets
+  useEffect(() => {
+    const loadAudioSets = async () => {
+      try {
+        const response = await fetch('/api/data?action=get-audio-sets');
+        if (response.ok) {
+          const data = await response.json();
+          setAudioSets(data.audioSets || []);
+        }
+      } catch (error) {
+        console.error('Error loading audio sets:', error);
+      }
+    };
+    loadAudioSets();
+  }, []);
 
   const generateTestSurvey = () => {
     return {
@@ -259,25 +289,58 @@ export default function DemoTestCallPage() {
           </div>
         </div>
 
-        {/* Demo Survey Preview */}
+        {/* Audio Set Selection */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Demo Survey Questions</h2>
-          <div className="space-y-3">
-            {generateTestSurvey().survey.questions.map((question, index) => (
-              <div key={question.id} className="border-l-4 border-brand-500 pl-4 py-2">
-                <div className="flex items-start space-x-2">
-                  <span className="text-sm font-medium text-gray-500">{index + 1}.</span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {question.text}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Type: {question.type} • Language: {question.language}
-                    </p>
-                  </div>
-                </div>
+          <h2 className="text-lg font-semibold mb-4">Audio Set Selection</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Audio Set
+              </label>
+              <Select
+                options={audioSets.map(audioSet => ({
+                  value: audioSet.set_id,
+                  label: `${audioSet.name} (${audioSet.language.toUpperCase()}) - ${audioSet.department}`
+                }))}
+                placeholder="Choose an audio set for the demo"
+                defaultValue={selectedAudioSet}
+                onChange={(value: string) => setSelectedAudioSet(value)}
+              />
+            </div>
+
+            {selectedAudioSet && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-medium mb-2">Selected Audio Set Preview</h3>
+                {(() => {
+                  const selectedSet = audioSets.find(set => set.set_id === selectedAudioSet);
+                  return selectedSet ? (
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <strong>Name:</strong> {selectedSet.name}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Description:</strong> {selectedSet.description}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Language:</strong> {selectedSet.language === 'ar' ? 'Arabic' : 'English'}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Department:</strong> {selectedSet.department}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Files:</strong> {selectedSet.audio_files?.length || 0}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
-            ))}
+            )}
+
+            {audioSets.length === 0 && (
+              <div className="text-sm text-gray-500 text-center py-4">
+                No audio sets available. Create some in the Audio Set Creation page first.
+              </div>
+            )}
           </div>
         </div>
       </div>
