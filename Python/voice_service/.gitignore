@@ -1,0 +1,69 @@
+# Python Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Voice Models (should be downloaded on deployment)
+models/
+*.bin
+*.zip
+*.tar.gz
+
+# Temporary Audio Files
+temp_audio/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Logs
+logs/
+*.log
+loguru.log
+
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.cache/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Render
+render-build.log
+.render/
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Model Downloads (in deployment)
+data/models/
+/data/
+/tmp/voice*.zip
+/tmp/*.wav
