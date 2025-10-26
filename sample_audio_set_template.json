@@ -1,0 +1,106 @@
+{
+  "audioSet": {
+    "id": "survey_cardiology_arabic_v1",
+    "name": "قلبية - استبيان صحي قلبي",
+    "description": "مجموعة صوتية لاستبيان القلبي باللغة العربية",
+    "language": "ar",
+    "department": "cardiology",
+    "version": "1.0",
+
+    "configuration": {
+      "questionDelay": 2,
+      "responseWindow": 10,
+      "silenceThreshold": 3,
+      "maxRetries": 2,
+      "timeoutBetweenQuestions": 1
+    },
+
+    "audioFiles": [
+      {
+        "id": "intro_greeting",
+        "fileName": "intro_greeting.mp3",
+        "description": "تحية افتتاحية للمريض",
+        "duration": "00:00:08",
+        "text": "مرحباً بك في استبيان صحة القلب"
+      },
+      {
+        "id": "question_1",
+        "fileName": "question_1.mp3",
+        "description": "السؤال الأول: هل تشعر بألم في الصدر؟",
+        "duration": "00:00:05",
+        "text": "هل تشعر بأي ألم في منطقة الصدر؟",
+        "questionNumber": 1,
+        "type": "yes_no"
+      },
+      {
+        "id": "question_2",
+        "fileName": "question_2.mp3",
+        "description": "السؤال الثاني: هل تعاني من ضيق النفس؟",
+        "duration": "00:00:06",
+        "text": "هل تعاني من صعوبة في التنفس أو ضيق النفس؟",
+        "questionNumber": 2,
+        "type": "yes_no"
+      },
+      {
+        "id": "question_3",
+        "fileName": "question_3.mp3",
+        "description": "السؤال الثالث: هل تمارس الرياضة بانتظام؟",
+        "duration": "00:00:05",
+        "text": "هل تمارس الرياضة أو النشاط البدني بانتظام؟",
+        "questionNumber": 3,
+        "type": "yes_no"
+      },
+      {
+        "id": "question_4",
+        "fileName": "question_4.mp3",
+        "description": "السؤال الرابع: هل تدخن؟",
+        "duration": "00:00:03",
+        "text": "هل تدخن السجائر أو أي منتجات تبغ؟",
+        "questionNumber": 4,
+        "type": "yes_no"
+      },
+      {
+        "id": "question_5",
+        "fileName": "question_5.mp3",
+        "description": "السؤال الخامس: هل عندك تاريخ عائلي للأمراض القلبية؟",
+        "duration": "00:00:08",
+        "text": "هل يوجد في عائلتك تاريخ من الأمراض القلبية؟",
+        "questionNumber": 5,
+        "type": "yes_no"
+      },
+      {
+        "id": "outro_thankyou",
+        "fileName": "outro_thankyou.mp3",
+        "description": "خاتمة الاستبيان وشكر المريض",
+        "duration": "00:00:07",
+        "text": "شكراً لك على إجاباتك، نتائج الاستبيان ستساعد في تحسين رعايتك الصحية"
+      }
+    ],
+
+    "surveyFlow": {
+      "sequence": [
+        "intro_greeting",
+        "question_1",
+        "question_2",
+        "question_3",
+        "question_4",
+        "question_5",
+        "outro_thankyou"
+      ],
+      "responseHandling": {
+        "expectedResponses": ["نعم", "لا", "غير متأكد", "yes", "no", "uncertain"],
+        "confidenceThreshold": 0.7,
+        "fallbackBehavior": "repeat_question"
+      }
+    },
+
+    "metadata": {
+      "createdAt": "2025-10-13T19:10:00Z",
+      "createdBy": "hana-voice-system",
+      "totalDuration": "00:00:42",
+      "fileCount": 7,
+      "estimatedCallTime": "00:02:30",
+      "tags": ["cardiology", "arabic", "rtl", "voice-survey"]
+    }
+  }
+}
