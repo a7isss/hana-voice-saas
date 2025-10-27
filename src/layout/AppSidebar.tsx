@@ -48,6 +48,7 @@ const othersItems: NavItem[] = [
     icon: <PlugInIcon />,
     name: "Voice Services",
     subItems: [
+      { name: "Voice Service Tester", path: "/voice-tester", pro: false },
       { name: "Calling Robot", path: "/calling-robot", pro: false },
       { name: "Demo Test Call", path: "/demo-test-call", pro: false },
       { name: "Audio Conversion", path: "/audio-conversion", pro: false },

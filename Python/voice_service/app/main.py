@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 # Security Configuration
 SECRET_KEY = os.environ.get("VOICE_SERVICE_SECRET", "your-secret-key-change-in-production")
 JWT_SECRET = os.environ.get("VOICE_SERVICE_TOKEN", "your-jwt-secret-change-in-production")
+TELEPHONY_TOKEN = os.environ.get("TELEPHONY_TOKEN", None)  # Pre-shared token from telephony company
 MAX_CONCURRENT_SESSIONS = int(os.environ.get("MAX_CONCURRENT_SESSIONS", "10"))
 RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
 
@@ -293,6 +294,19 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
         logger.warning("Invalid token")
         return None
 
+def verify_telephony_token(token: str) -> bool:
+    """Verify pre-shared token from telephony company"""
+    if not TELEPHONY_TOKEN:
+        logger.warning("Telephony token not configured")
+        return False
+
+    if token == TELEPHONY_TOKEN:
+        logger.info("Telephony token authenticated successfully")
+        return True
+
+    logger.warning("Invalid telephony token provided")
+    return False
+
 def check_rate_limit(client_ip: str) -> bool:
     """Check if client has exceeded rate limit"""
     current_time = time.time()
@@ -549,6 +563,164 @@ async def secure_healthcare_endpoint(websocket: WebSocket, token: str = None):
         # Log session results
         logger.info(f"📊 Secure session {session_id} summary: {healthcare_context['patient_data']}")
         # Clean up session
+        if session_id in active_sessions:
+            active_sessions[session_id]["active"] = False
+
+@app.websocket("/ws/telephony")
+async def telephony_websocket_endpoint(websocket: WebSocket, token: str = None):
+    """WebSocket endpoint for telephony company using pre-shared token
+
+    URL format: ws://your-server/ws/telephony?token=pre-shared-token
+
+    Receives: Raw μ-law audio bytes from telephony system
+    Sends: Raw audio bytes as Arabic voice responses
+    """
+    # Verify telephony token
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Telephony authentication failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+
+    await websocket.accept()
+    session_id = f"telephony_{int(time.time())}_{id(websocket)}"
+    client_ip = websocket.client.host if websocket.client else "telephony"
+    logger.info(f"📞 Telephony session: {session_id} from {client_ip}")
+
+    # Session context for voice processing
+    session_context = {
+        "session_id": session_id,
+        "questionnaire_state": "initial",
+        "patient_responses": {},
+        "language": "ar",
+        "source": "telephony"
+    }
+
+    # Track active session
+    active_sessions[session_id] = {
+        "active": True,
+        "created_at": time.time(),
+        "client_ip": client_ip,
+        "type": "telephony",
+        "authenticated": True
+    }
+
+    try:
+        while True:
+            # Receive audio from telephony system
+            audio_data = await websocket.receive_bytes()
+            logger.info(f"{session_id}: Received {len(audio_data)} bytes audio")
+
+            # Process voice interaction
+            if voice_service:
+                response_text, audio_file_path = voice_service.process_voice_interaction(
+                    audio_data, session_context
+                )
+
+                logger.info(f"{session_id}: Responding: '{response_text}'")
+
+                # Send audio response
+                if audio_file_path and os.path.exists(audio_file_path):
+                    with open(audio_file_path, "rb") as f:
+                        audio_bytes = f.read()
+                    await websocket.send_bytes(audio_bytes)
+                    logger.info(f"{session_id}: Sent {len(audio_bytes)} bytes audio")
+                    os.remove(audio_file_path)  # Clean up
+                else:
+                    await websocket.send_text("error: no response")
+            else:
+                await websocket.send_text("error: voice service unavailable")
+
+    except WebSocketDisconnect:
+        logger.info(f"📞 Telephony session {session_id} ended")
+
+    except Exception as e:
+        logger.error(f"❌ Telephony session {session_id} error: {e}")
+
+    finally:
+        if session_id in active_sessions:
+            active_sessions[session_id]["active"] = False
+
+@app.websocket("/ws/telephony/healthcare")
+async def telephony_healthcare_endpoint(websocket: WebSocket, token: str = None):
+    """Healthcare questionnaire endpoint for telephony company
+
+    URL format: ws://your-server/ws/telephony/healthcare?token=pre-shared-token
+
+    Provides structured healthcare interactions:
+    - Symptom assessment
+    - Pain level evaluation
+    - Medication tracking
+    - Appointment coordination
+    """
+    # Verify telephony token
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Telephony healthcare auth failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+
+    await websocket.accept()
+    session_id = f"telephony_healthcare_{int(time.time())}_{id(websocket)}"
+    client_ip = websocket.client.host if websocket.client else "telephony"
+    logger.info(f"🏥📞 Telephony healthcare session: {session_id} from {client_ip}")
+
+    active_sessions[session_id] = {
+        "active": True,
+        "created_at": time.time(),
+        "client_ip": client_ip,
+        "type": "telephony_healthcare",
+        "authenticated": True
+    }
+
+    healthcare_context = {
+        "session_id": session_id,
+        "questionnaire_type": "telephony_health_assessment",
+        "current_question": "initial_greeting",
+        "patient_data": {
+            "responses": {},
+            "symptoms": [],
+            "pain_levels": [],
+            "medications": [],
+            "appointment_needed": False
+        },
+        "language": "ar",
+        "source": "telephony"
+    }
+
+    try:
+        # Send Arabic welcome
+        welcome_text = "أهلاً وسهلاً. يرجى التحدث بوضوح لمساعدتك في تقييم حالتك الصحية."
+        await _send_voice_response(websocket, welcome_text, session_id)
+
+        while True:
+            # Receive patient audio
+            audio_data = await websocket.receive_bytes()
+            logger.info(f"{session_id}: Received {len(audio_data)} bytes healthcare audio")
+
+            if voice_service:
+                response_text, audio_path = voice_service.process_voice_interaction(
+                    audio_data, healthcare_context
+                )
+
+                # Update healthcare context
+                _update_healthcare_context(response_text, healthcare_context)
+
+                # Send response
+                await _send_voice_response(websocket, response_text, session_id, audio_path)
+
+                # Check completion
+                if _is_questionnaire_complete(healthcare_context):
+                    break
+            else:
+                await websocket.send_text("error: voice service unavailable")
+
+    except WebSocketDisconnect:
+        logger.info(f"🏥📞 Healthcare session {session_id} completed")
+
+    except Exception as e:
+        logger.error(f"🏥📞 Healthcare session {session_id} error: {e}")
+
+    finally:
+        logger.info(f"📊 Healthcare session {session_id} summary: {healthcare_context['patient_data']}")
         if session_id in active_sessions:
             active_sessions[session_id]["active"] = False
 

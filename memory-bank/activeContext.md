@@ -87,7 +87,7 @@ GET /api/telephony → ✅ 200 OK (Telephony integration readiness)
    - **Purpose**: Raw survey questions configuration
    - **Storage**: User-uploaded JSON files (temporary)
    - **Processing**: Converted to audio sets database records
-   - **Example**: sample_audio_set_template.json without intro_greeting
+   - **Example**: testing/samples/audio-set-template.json without intro_greeting
    - **Management**: File upload → Process → Store as audio set
 
 #### **Priority Order in Calls**:
@@ -179,5 +179,13 @@ The memory bank should be updated when:
 - Security or compliance requirements updated
 - Major debugging discoveries or workarounds documented
 
-**Last Updated**: October 13, 2025
+**Last Updated**: October 27, 2025
 **Next Update Trigger**: After first production deployment or Phase 2 planning completion
+
+### Recent Updates (October 27, 2025)
+- **Python Environment Setup**: COMPLETED - Vosk (Arabic STT), Coqui TTS, and 149 dependencies successfully installed and verified
+- **Model Verification**: Arabic Vosk model loads successfully; TTS system identifies 5 Arabic models; basic imports functional
+- **File Organization**: Moved test files to `testing/` folder and Python tests to `Python/voice_service/tests/`
+- **Documentation Cleanup**: Organized MVP readiness and test plan documentation
+- **Reference Updates**: Updated file paths in README and memory bank documentation
+- **Phase 2 Readiness**: Python voice service fully prepared for Next.js integration testing

@@ -48,7 +48,7 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 
 # 5. Test models (downloads ~3GB of models)
-python test_models.py
+python tests/test_models.py
 ```
 
 ### Run the Service
@@ -209,7 +209,7 @@ audio_16khz = convert_mulaw_to_pcm(mulaw_bytes_from_maqsam)
 ### Testing Framework
 ```bash
 # Run model tests
-python test_models.py
+python tests/test_models.py
 
 # Run healthcare questionnaire tests
 python -m pytest tests/ -v
@@ -270,7 +270,8 @@ voice_service/
 ├── models/                # Voice models (generated)
 ├── requirements.txt       # Dependencies
 ├── render.yaml           # Deployment config
-└── test_models.py        # Verification script
+└── tests/               # Test files
+    └── test_models.py   # Verification script
 ```
 
 ## 🎉 **Success Metrics**
