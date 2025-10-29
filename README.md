@@ -1,8 +1,8 @@
-# Hana Voice SaaS - Restructure Complete: 3-Function Focus
+# Hana Voice SaaS - Arabic Script Management System
 
 ![Hana Voice SaaS Dashboard](./banner.png)
 
-**Status: 🔄 MAJOR RESTRUCTURE COMPLETED - AUDIO SET WORKFLOW IMPLEMENTED**
+**Status: 🚀 PRODUCTION DEPLOYED - AGENT CONFIGURATION & ARABIC VOICE PROCESSING**
 
 **📚 Documentation Navigation:**
 
@@ -10,34 +10,34 @@
 |----------|-------------------|-------------|
 | [README.md](README.md) | [memory-bank/](memory-bank/) | [SETUP_GUIDE.md](SETUP_GUIDE.md) |
 | Main overview & deployment | Complete architecture & design | Development environment |
-| status with restructure | patterns | & deployment procedures |
+| status with agent configuration | patterns | & deployment procedures |
 
 ---
 
 Visit the live application: [https://hana-voice-saas.onrender.com](https://hana-voice-saas.onrender.com)
 
-## About Hana Voice SaaS - Restructured to 3 Core Functions
+## About Hana Voice SaaS - Arabic Voice Script Management
 
-Following successful MVP deployment, Hana Voice SaaS has been **restructured to focus on 3 high-level functions only** with proper audio set management via Supabase:
+Hana Voice SaaS is a complete Arabic voice service platform featuring **intelligent script management with agent configuration and Maqsam telephony integration**:
 
-1. **🎵 Audio Set Creation** - JSON survey templates → structured audio sets saved to database
-2. **📞 Demo/Test Call** - Use saved audio sets for testing and demonstration
-3. **📊 Batch Calling** - Excel upload + select saved audio set → automated patient outreach
+1. **🤖 Agent Configuration** - Arabic conversation script creation and management
+2. **🎭 Calling Robot** - Professional Arabic voice calls with script playback
+3. **🎵 Voice Tester** - Real-time script testing with voice synthesis and recognition
 
-### ✅ RESTRUCTURE COMPLETE (October 13, 2025)
-- ✅ **Audio Sets Table**: Supabase `audio_sets` with JSONB fields for full template storage
-- ✅ **Form-Based Creation**: Replaced JSON display with user-friendly creation forms
-- ✅ **Database Persistence**: All audio sets saved to and loaded from Supabase
-- ✅ **Component Integration**: All 3 pages now use shared audio set management
-- ✅ **API Extensions**: CRUD operations for audio set lifecycle management
-- ✅ **UI Consolidation**: Removed redundant JSON displays and consolidated workflows
+### ✅ DEPLOYMENT COMPLETE (October 29, 2025)
+- ✅ **Script Management System**: Full CRUD operations for Arabic conversation scripts
+- ✅ **Voice Memory Integration**: Scripts maintain context and adapt responses
+- ✅ **Agent Configuration**: Voice tester seamlessly integrates with script management
+- ✅ **Maqsam Telephony**: Pre-shared token authentication for healthcare communications
+- ✅ **Local Arabic Processing**: Vosk STT + Coqui TTS for cost-effective voice processing
+- ✅ **Supabase Integration**: Persistent script storage with real-time synchronization
 
-### 🏆 GOLDEN NUGGET ACHIEVED + RESTRUCTURE BONUS
-- ✅ **Production Deployed**: Successfully deployed on Render platform
-- ✅ **MVP Complete**: All core APIs functional (auth, voice, data, telephony)
-- ✅ **Arabic RTL Support**: Excel exports with proper Arabic text formatting
-- ✅ **Supabase Connected**: PostgreSQL database with `audio_sets` table
-- ✅ **API Health**: 100% endpoint availability confirmed (extended with audio set ops)
+### 🏆 PRODUCTION READY
+- ✅ **Arabic Voice Service**: Local speech recognition and text-to-speech processing
+- ✅ **Healthcare Focus**: Maqsam integration for Saudi Arabian healthcare providers
+- ✅ **Script Intelligence**: Context-aware conversation flows with memory
+- ✅ **Secure Architecture**: Pre-shared token authentication system
+- ✅ **Real-time Processing**: WebSocket connections for live voice interactions
 
 ## Core Business Functions - New Workflow
 
@@ -75,9 +75,32 @@ Following successful MVP deployment, Hana Voice SaaS has been **restructured to 
 
 - **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes, Supabase PostgreSQL
-- **AI Services**: OpenAI TTS/STT, GPT analysis
+- **Voice Processing**: Local Vosk Arabic STT + Coqui XTTS Arabic models
+- **Telephony**: Maqsam integration with pre-shared token auth
 - **Deployment**: Render platform
 - **Languages**: Arabic (RTL) + English support
+
+### Voice Model Configuration
+
+#### Model File Storage Locations
+- **Vosk Arabic STT Model**: `Python/voice_service/models/vosk-model-ar-0.22/`
+- **Coqui TTS Models**: Auto-downloaded to `Python/voice_service/models/tts/`
+- **Production Location**: Render persistent disk `/data/models/`}
+- **Model Size**: ~2.5GB total (Vosk + TTS on first load)
+- **Download**: Automatic on first startup request
+
+#### Model Directory Structure
+```
+Python/voice_service/models/
+├── vosk-model-ar-0.22/          # Arabic STT model (~500MB)
+│   ├── am/                      # Acoustic model
+│   ├── conf/                    # Configuration files
+│   ├── graph/                   # Language model (~2GB)
+│   ├── ivector/                 # Speaker identification
+│   └── rescore/                 # Grammar rescoring
+└── tts/                         # Coqui TTS cache (auto-created)
+    └── [downloaded_model_files]/ # Arabic voice models
+```
 
 ## Quick Start
 
@@ -109,12 +132,11 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-## Configuration
+## Environment Variables & Model Configuration
 
-### Environment Variables Setup
+### Required Environment Variables
 
-#### Required Variables
-Before running the application, you must configure the following environment variables:
+Before running the application, copy `.env.local.example` to `.env.local` and configure these required variables:
 
 1. **Copy the example file:**
    ```bash

@@ -26,23 +26,33 @@ Before starting any testing, verify these requirements:
 
 ### **Project Files**
 - [ ] Repository cloned: `git clone [your-repo]`
-- [ ] Dependencies installed: `uv sync` (from voice_service directory)
-- [ ] Arabic voice models ready (**IMPORTANT**):
+- [ ] Dependencies installed: `npm install && uv sync` (from voice_service directory)
+- [ ] Agent configuration system with Arabic script management
+- [ ] Supabase database for script storage
 
+### **Voice Models Location & Setup**
+- [ ] **Vosk Arabic STT Model Location**: `/Python/voice_service/models/vosk-model-ar-0.22/`
+- [ ] **TTS Download Directory**: Automatic download to `Python/voice_service/models/tts/`
+- [ ] **Production Model Location**: Render persistent disk `/data/models/`
+- [ ] **First startup downloads**: ~100MB of Arabic voice models
+- [ ] **Cache persistence**: Models stay loaded in memory after initial load
+
+#### **Model Directory Structure:**
 ```
-📁 Python/voice_service/models/
-├── am/          ✅ Acoustic model (~500MB)
-├── conf/        ✅ Configuration files
-├── graph/       ✅ Language model graph (~2GB)
-├── ivector/     ✅ Speaker identification
-└── rescore/     ✅ Grammar rescoring
-
-Status: Models were downloaded but are NOT in git (correct behavior)
+Python/voice_service/models/
+├── vosk-model-ar-0.22/          # Arabic STT model (~500MB)
+│   ├── am/                      # Acoustic model
+│   ├── conf/                    # Configuration files
+│   ├── graph/                   # Language model (~2GB)
+│   ├── ivector/                 # Speaker identification
+│   └── rescore/                 # Grammar rescoring
+└── tts/                         # Coqui TTS cache (auto-created)
+    └── [downloaded_models]/     # Arabic voice models
 ```
 
-### **Voice Models Status**
-- [ ] **Arabic STT (Vosk)**: Model files present in `models/` directory
-- [ ] **Arabic TTS (Coqui XTTS)**: Auto-downloads on first use (5 Arabic models available)
+### **Environment Variables for Models**
+- [ ] `VOSK_MODEL_PATH=models/vosk-model-ar-0.22` (set automatically)
+- [ ] No manual TTS path configuration needed (auto-detects)
 
 ### **Testing Prerequisites**
 - [ ] http://localhost:3000 (Next.js app) accessible

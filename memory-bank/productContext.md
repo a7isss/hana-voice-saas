@@ -71,10 +71,10 @@ Healthcare Provider → Upload Patient List → Configure Survey → Initiate Ca
 ## Competitive Advantages
 
 ### Technology Stack
-- **Modern AI**: OpenAI GPT-4 for natural Arabic conversations
-- **Reliable Infrastructure**: Supabase for scalable data management
-- **Telephony Integration**: FreePBX for enterprise-grade call handling
-- **Cloud-Native**: Render deployment for global scalability
+- **Local Voice Processing**: Vosk Arabic STT + Coqui XTTS for cost-effective processing
+- **Supabase Infrastructure**: Scalable data management with real-time capabilities
+- **Maqsam Telephony**: Pre-shared token authentication for secure healthcare communications
+- **Render Cloud-Native**: Optimized deployment with automatic scaling
 
 ### Healthcare-Specific Features
 - **Medical Specialties**: Templates for cardiology, oncology, pediatrics, etc.

@@ -6,8 +6,8 @@
 - [ ] Node.js 18.x or later installed
 - [ ] npm or yarn package manager
 - [ ] Supabase account and project
-- [ ] OpenAI API account with credits
-- [ ] Freepbx server with AMI access (optional for testing)
+- [ ] Maqsam telephony account (optional for live calling)
+- [ ] Python 3.11+ for local voice processing (optional for development)
 
 ### 5-Minute Setup
 
@@ -38,24 +38,22 @@
 ### Step 1: Environment Configuration
 
 #### Required Environment Variables
-Create `.env.local` file with the following variables:
+Copy `.env.local.example` to `.env.local` and fill in your actual values:
 
 ```env
-# Supabase Configuration
+# Supabase Configuration (Required)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
-# OpenAI Configuration
-OPENAI_API_KEY=your-openai-api-key
+# Authentication Configuration (Required)
+JWT_SECRET_KEY=your_secure_jwt_secret_key_here
 
-# Freepbx Configuration (Optional for testing)
-FREEPBX_HOST=your-freepbx-host
-FREEPBX_USERNAME=your-ami-username
-FREEPBX_PASSWORD=your-ami-password
+# Python Voice Service (Required)
+VOICE_SERVICE_SECRET=your_voice_service_secret_key
+VOICE_SERVICE_TOKEN=jwt_secret_for_voice_service
 
-# Application Configuration
-NODE_ENV=development
-NEXT_PUBLIC_API_URL=http://localhost:3000
+# Telephony Integration (Optional)
+TELEPHONY_TOKEN=pre-shared-token-from-maqsam
 ```
 
 #### Getting Supabase Credentials
@@ -64,12 +62,16 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 3. Copy the Project URL and anon public key
 4. Import the database schema from `supabase_schema.sql`
 
-#### Getting OpenAI API Key
-1. Go to [OpenAI Platform](https://platform.openai.com)
-2. Create an account and verify email
-3. Navigate to API Keys section
-4. Generate a new API key
-5. Add billing information (required for API usage)
+#### Getting Maqsam Telephony Token (Optional)
+1. Sign up with Maqsam telephony service
+2. Obtain your API key or pre-shared token
+3. Add the TELEPHONY_TOKEN to your environment variables
+
+#### Alternative: Local Development
+For local voice processing development:
+1. Ensure Python 3.11+ is installed
+2. Install voice service dependencies: `pip install -r Python/voice_service/requirements.txt`
+3. Start voice service: `cd Python/voice_service && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
 
 ### Step 2: Database Setup
 
@@ -149,17 +151,23 @@ CMD ["npm", "start"]
 
 ## 🔌 Integration Setup
 
-### Freepbx Integration
-1. **Enable AMI in Freepbx**
-   - Navigate to Admin → Asterisk Manager Users
-   - Create a new user with read/write permissions
-   - Note the host, username, and password
+### Maqsam Telephony Integration (Optional)
+1. **Sign up for Maqsam service**
+   - Visit Maqsam website to register for telephony services
+   - Obtain your API key or pre-shared token
+   - Add TELEPHONY_TOKEN to your environment variables
 
 2. **Test Connection**
    ```bash
-   # Test AMI connection
-   telnet your-freepbx-host 5038
+   # Test connectivity to Maqsam service
+   # (Command depends on Maqsam's API - check their documentation)
    ```
+
+### Voice Processing (Automatic)
+The application automatically handles Arabic voice processing using:
+- **Speech Recognition**: Vosk Arabic STT model (local processing)
+- **Text-to-Speech**: Coqui XTTS Arabic model (local processing)
+- **No external API costs**: All voice processing is local to the server
 
 ### Supabase Real-time Features
 1. **Enable Realtime**
@@ -167,15 +175,17 @@ CMD ["npm", "start"]
    - Enable realtime for required tables
    - Configure row level security policies
 
-### OpenAI Configuration
-1. **Model Selection**
-   - TTS: `tts-1` or `tts-1-hd`
-   - STT: `whisper-1`
-   - Chat: `gpt-3.5-turbo` or `gpt-4`
-
-2. **Rate Limiting**
-   - Monitor usage in OpenAI dashboard
-   - Implement retry logic for rate limits
+### Local Development
+For local voice processing development:
+1. Install Python dependencies:
+   ```bash
+   cd Python/voice_service
+   pip install -r requirements.txt
+   ```
+2. Start voice service: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+3. Test endpoints:
+   - WebSocket: `ws://localhost:8000/ws/echo`
+   - Health: `http://localhost:8000/health`
 
 ## 🧪 Testing Strategy
 
@@ -350,7 +360,8 @@ npm run analyze
 ### Emergency Contacts
 - **Infrastructure**: Render support for deployment issues
 - **Database**: Supabase support for database issues
-- **AI Services**: OpenAI support for API issues
+- **Voice Processing**: Local models (no external API dependencies)
+- **Maqsam Telephony**: Maqsam support for telephony issues
 
 ---
 
