@@ -45,5 +45,3 @@ services:
         value: "5"  # Reduced for free tier
       - key: RATE_LIMIT_PER_MINUTE
         value: "30"  # Reduced for free tier
-      - key: OPENAI_API_KEY
-        value: your-openai-key-here  # SET IN RENDER DASHBOARD
