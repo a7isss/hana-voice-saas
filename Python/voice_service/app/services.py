@@ -44,7 +44,7 @@ class VoiceService:
         for attempt in range(max_retries):
             try:
                 # Vosk Arabic STT Model
-                vosk_path = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-ar-0.22")
+                vosk_path = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-ar-0.22-linto-1.1.0")
                 if not os.path.exists(vosk_path):
                     raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path}")
 
@@ -82,12 +82,14 @@ class VoiceService:
 
             # Test TTS model
             try:
-                # Quick test synthesis
+                # Quick test synthesis with default speaker
                 test_output = os.path.join(os.getcwd(), "health_check_test.wav")
                 self.tts_model.tts_to_file(
                     text="اختبار",
                     file_path=test_output,
-                    language="ar"
+                    language="ar",
+                    speaker_wav=None,  # Use default speaker
+                    speaker="female_en_0"  # Default female English speaker as base
                 )
 
                 if os.path.exists(test_output):
@@ -119,28 +121,7 @@ class VoiceService:
             "version": "1.0.0"
         }
 
-    def _load_models(self):
-        """Load both TTS and STT models"""
-        try:
-            # Vosk Arabic STT Model
-            vosk_path = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-ar-0.22")
-            if not os.path.exists(vosk_path):
-                raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path}")
-
-            logger.info(f"Loading Vosk model from: {vosk_path}")
-            self.vosk_model = Model(vosk_path)
-            logger.info("✅ Vosk Arabic model loaded successfully")
-
-            # Coqui XTTS Model (Multi-language with Arabic)
-            logger.info("Loading Coqui XTTS model...")
-            self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
-            logger.info("✅ Coqui XTTS model loaded successfully")
-
-            logger.info("🎯 Voice Service initialization complete!")
-
-        except Exception as e:
-            logger.error(f"Failed to load voice models: {e}")
-            raise RuntimeError(f"Voice model loading failed: {e}")
+    # Model loading is handled in the constructor with retry logic - no duplicate method needed
 
     def speech_to_text(self, audio_bytes: bytes) -> str:
         """Convert audio bytes to Arabic text using Vosk with retry logic
@@ -253,7 +234,9 @@ class VoiceService:
                 self.tts_model.tts_to_file(
                     text=text,
                     file_path=output_path,
-                    language=language
+                    language=language,
+                    speaker_wav=None,  # Use default speaker
+                    speaker="female_en_0"  # Default female English speaker as base
                 )
                 generation_time = time.time() - start_time
 

@@ -6,6 +6,7 @@ import os
 import time
 import hashlib
 import hmac
+import subprocess
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
@@ -281,6 +282,127 @@ def _is_questionnaire_complete(context: Dict[str, Any]) -> bool:
     # Basic completion criteria
     responses = context.get("patient_data", {}).get("responses", {})
     return len(responses) >= 3  # At least 3 responses collected
+
+def decode_webm_audio(webm_bytes: bytes) -> Optional[bytes]:
+    """Convert WebM format audio to WAV bytes using ffmpeg (IN-MEMORY ONLY)
+
+    Uses ffmpeg pipes to avoid file I/O entirely - modern, efficient approach.
+
+    Args:
+        webm_bytes: WebM audio data from browser MediaRecorder
+
+    Returns:
+        Raw WAV audio bytes, or None if conversion fails
+    """
+    try:
+        logger.info("🎵 Starting in-memory WebM → WAV conversion...")
+        logger.debug(f"Input WebM data size: {len(webm_bytes)} bytes")
+
+        # Check if ffmpeg is available - try WinGet path first, then PATH
+        ffmpeg_paths = [
+            r"C:\Users\Ahmad Younis\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0-full_build\bin\ffmpeg.exe",  # winGet path
+            "ffmpeg.exe"  # try PATH
+        ]
+
+        ffmpeg_cmd = None
+        for path in ffmpeg_paths:
+            try:
+                result = subprocess.run([path, '-version'], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    ffmpeg_cmd = path
+                    logger.info(f"✅ ffmpeg found at: {path}")
+                    break
+            except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+                continue
+
+        if ffmpeg_cmd is None:
+            logger.error("❌ ffmpeg not found. Please install ffmpeg to enable WebM audio processing.")
+            return None
+
+        # Modern approach: Use ffmpeg with pipes (stdin → stdout), no files!
+        # -f webm: input format
+        # -i pipe: read from stdin
+        # -f wav: output format
+        # pipe:1: write to stdout
+        # -acodec pcm_s16le: raw PCM 16-bit
+        # -ar 16000: Vosk required sample rate
+        # -ac 1: mono channel
+        cmd = [
+            ffmpeg_cmd,
+            '-y',  # overwrite (though not needed with pipes)
+            '-f', 'webm',
+            '-i', 'pipe:0',  # read from stdin
+            '-f', 'wav',
+            '-acodec', 'pcm_s16le',
+            '-ar', '16000',
+            '-ac', '1',
+            'pipe:1'  # write to stdout
+        ]
+
+        logger.debug(f"🔄 Running ffmpeg pipe: {' '.join(cmd)}")
+
+        # Start ffmpeg process with stdin/stdout pipes
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0  # unbuffered for real-time
+        )
+
+        try:
+            # Send WebM data to stdin
+            stdout, stderr = process.communicate(
+                input=webm_bytes,
+                timeout=30  # 30 second timeout
+            )
+
+            if process.returncode != 0:
+                logger.error(f"❌ ffmpeg pipe conversion failed with return code {process.returncode}")
+                logger.error(f"❌ ffmpeg stderr: {stderr.decode() if stderr else 'No stderr'}")
+                logger.error(f"❌ ffmpeg stdout length: {len(stdout) if stdout else 0}")
+                return None
+
+            if not stdout or len(stdout) < 44:  # WAV header is at least 44 bytes
+                logger.error(f"❌ ffmpeg output too small ({len(stdout) if stdout else 0} bytes)")
+                return None
+
+            logger.info(f"✅ In-memory WebM → WAV conversion successful: {len(stdout)} bytes WAV")
+            logger.debug(".4f")
+
+            return stdout  # Return raw WAV bytes
+
+        except subprocess.TimeoutExpired:
+            logger.error("❌ ffmpeg pipe timeout (30s)")
+            process.kill()
+            return None
+        except Exception as e:
+            logger.error(f"❌ ffmpeg pipe communication failed: {e}")
+            process.kill()
+            return None
+
+    except Exception as e:
+        logger.error(f"❌ In-memory WebM decoding failed: {e}")
+        return None
+
+def is_webm_format(audio_bytes: bytes) -> bool:
+    """Check if audio data is WebM format
+
+    Args:
+        audio_bytes: Audio data to check
+
+    Returns:
+        True if data appears to be WebM format
+    """
+    try:
+        # WebM files start with EBML header
+        # First 4 bytes should be 0x1A 0x45 0xDF 0xA3
+        if len(audio_bytes) < 4:
+            return False
+
+        return audio_bytes[:4] == b'\x1aE\xdf\xa3'
+    except Exception:
+        return False
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
     """Verify JWT token for authentication"""
@@ -639,6 +761,98 @@ async def telephony_websocket_endpoint(websocket: WebSocket, token: str = None):
     finally:
         if session_id in active_sessions:
             active_sessions[session_id]["active"] = False
+
+@app.websocket("/ws/echo")
+async def echo_websocket_endpoint(websocket: WebSocket):
+    """Simple echo endpoint for testing STT→TTS flow
+
+    Simple 2-step process:
+    1. Audio input → STT transcription
+    2. STT text → TTS echo back (same text repeated)
+
+    URL: ws://localhost:8000/ws/echo
+    """
+    await websocket.accept()
+    session_id = f"echo_{id(websocket)}"
+    logger.info(f"🔄 Echo session started: {session_id}")
+
+    try:
+        while True:
+            logger.info(f"🔄 {session_id}: Waiting for audio data...")
+            # Receive audio data
+            audio_data = await websocket.receive_bytes()
+            logger.info(f"🎙️ {session_id}: AUDIO RECEIVED - {len(audio_data)} bytes")
+            logger.info(f"📊 {session_id}: Audio data sample (first 50 bytes): {audio_data[:50] if len(audio_data) >= 50 else audio_data}")
+
+            if voice_service:
+                logger.info(f"🔄 {session_id}: Starting STT processing...")
+
+                # Check if audio is WebM format and decode it
+                if is_webm_format(audio_data):
+                    logger.info(f"🎵 {session_id}: Detected WebM format, decoding to WAV...")
+                    decoded_audio = decode_webm_audio(audio_data)
+                    if decoded_audio:
+                        logger.info(f"✅ {session_id}: WebM decoded successfully - {len(decoded_audio)} bytes WAV")
+                        audio_data = decoded_audio
+                    else:
+                        logger.error(f"❌ {session_id}: WebM decoding failed, using original data")
+                        await websocket.send_text("error: audio format conversion failed")
+                        continue
+
+                # Process transcription only (no logic, just STT)
+                transcribed_text = voice_service.speech_to_text(audio_data)
+                logger.info(f"📝 {session_id}: STT RESULT - Transcribed: '{transcribed_text}' (length: {len(transcribed_text)})")
+
+                if transcribed_text and transcribed_text.strip():
+                    clean_text = transcribed_text.strip()
+                    logger.info(f"✅ {session_id}: Valid transcription found: '{clean_text}'")
+
+                    # Send the transcription text first
+                    text_msg = f"transcription: {clean_text}"
+                    await websocket.send_text(text_msg)
+                    logger.info(f"📤 {session_id}: SENT transcription to client: {text_msg}")
+
+                    # Generate TTS for the exact transcribed text (echo)
+                    logger.info(f"🔊 {session_id}: Starting TTS generation for: '{clean_text}'")
+                    audio_path = voice_service.text_to_speech(clean_text)
+                    logger.info(f"🎵 {session_id}: TTS generation result - path: {audio_path}, exists: {os.path.exists(audio_path) if audio_path else False}")
+
+                    if audio_path and os.path.exists(audio_path):
+                        file_size = os.path.getsize(audio_path)
+                        # Send back the audio as binary
+                        with open(audio_path, "rb") as audio_file:
+                            audio_bytes = audio_file.read()
+                        logger.info(f"🎵 {session_id}: Sending {len(audio_bytes)} bytes audio (file size: {file_size})")
+                        await websocket.send_bytes(audio_bytes)
+                        logger.info(f"📤 {session_id}: AUDIO SENT successfully to client")
+
+                        # Clean up
+                        try:
+                            os.remove(audio_path)
+                            logger.info(f"🧹 {session_id}: Cleaned up audio file: {audio_path}")
+                        except Exception as e:
+                            logger.warning(f"{session_id}: Failed to clean up {audio_path}: {e}")
+                    else:
+                        logger.warning(f"{session_id}: No echo audio generated")
+                        await websocket.send_text("error: failed to generate echo audio")
+                else:
+                    logger.warning(f"❌ {session_id}: No transcription detected - empty result")
+                    logger.info(f"❌ {session_id}: Sending error message to client")
+                    await websocket.send_text("error: no speech detected")
+            else:
+                logger.error(f"{session_id}: Voice service not available")
+                await websocket.send_text("error: voice service unavailable")
+
+    except WebSocketDisconnect:
+        logger.info(f"🔄 Echo session {session_id} disconnected")
+
+    except Exception as e:
+        logger.error(f"❌ Echo session {session_id} error: {e}")
+        logger.error(f"❌ Error details: {type(e).__name__}: {str(e)}")
+        try:
+            await websocket.send_text(f"error: {str(e)}")
+        except:
+            pass  # Socket might be closed
 
 @app.websocket("/ws/telephony/healthcare")
 async def telephony_healthcare_endpoint(websocket: WebSocket, token: str = None):

@@ -32,11 +32,12 @@ def test_vosk_model_load():
     """Test if Arabic Vosk model can be loaded"""
     print("\nTesting Arabic Vosk model loading...")
 
-    # Check if model exists
-    VOSK_MODEL_PATH = "models"  # Current directory in voice_service
+    # Check if model exists - same logic as main application
+    VOSK_MODEL_PATH = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-ar-0.22")
 
     if not os.path.exists(VOSK_MODEL_PATH):
         print(f"Model directory not found: {VOSK_MODEL_PATH}")
+        print("Note: Set VOSK_MODEL_PATH environment variable if using custom model path")
         return False
 
     try:

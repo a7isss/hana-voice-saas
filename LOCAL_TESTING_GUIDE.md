@@ -55,12 +55,37 @@ Status: Models were downloaded but are NOT in git (correct behavior)
 
 ## 🏗️ **Environment Setup**
 
+### **Before Starting - Check Environment**
+```bash
+# 1. Check Python version (must be 3.11+)
+python --version
+# Should show: Python 3.11.x, 3.12.x, or 3.13.x
+
+# 2. Check disk space (need 5GB+ free)
+# Windows: Check C:\ drive properties
+# Linux/Mac: df -h
+
+# 3. Check RAM (need 3GB+ available)
+# Windows: Task Manager → Performance
+# Linux: free -h | Mac: Activity Monitor
+
+# 4. Check if ports 3000 and 8000 are free
+netstat -an | find "3000"  # Windows
+# lsof -i :3000  # Linux/Mac (if installed)
+```
+
 ### **Step 1: Install Dependencies**
 ```bash
+# Navigate to project root
+cd "d:\0- Sites & services\2- voice robot"
+
+# Install Next.js dependencies
+npm install
+
 # Navigate to voice service
 cd Python/voice_service
 
-# Install all dependencies (149 packages)
+# Install voice service dependencies (149 packages with models)
 uv sync
 
 # Verify environment
@@ -118,6 +143,21 @@ VOICE_SERVICE_ENV=development
 
 ---
 
+*******
+```bash
+cd Python/voice_service
+
+# Test Arabic text-to-speech (first run will download models ~500MB each)
+python -c "
+from TTS.api import TTS
+
+# Use first Arabic model
+tts = TTS('tts_models/multilingual/multi-dataset/bark')
+tts.tts_to_file(text='أهلاً وسهلاً، كيف يمكنني مساعدتك؟', file_path='test_arabic.wav')
+
+print('✅ Arabic TTS successful - test_arabic.wav created')
+"
+```
 ## 🧪 **Model Verification (STT & TTS)**
 
 ### **STT Model Testing (Manual Files Required)**
@@ -154,6 +194,96 @@ PASS: Found 94 total models
       - tts_models/en/blizzard2013/capacitron-t2-c150_v2
 
 Test Results Summary:
+Vosk Import: PASS
+TTS Import: PASS
+Vosk Model Loading: PASS
+TTS Basic Test: PASS
+
+Overall: 4/4 tests passed
+SUCCESS: All basic model tests PASSED! Ready for integration.
+```
+
+### **TTS Model Testing & Caching Issue**
+
+**❗ COMMON ISSUE: TTS Downloads Every Time**
+
+> **Expected:** TTS models should download once and reuse cached versions
+> **Reality:** You may see models downloading repeatedly between runs
+>
+> **Causes:**
+> - Temporary cache files being cleaned up
+> - Different working directories between runs
+> - TTS model cache location conflicts
+
+**🔧 Workaround: Manual TTS Cache Setup**
+```bash
+cd Python/voice_service
+
+# 1. Pre-download and cache the TTS model once
+python -c "
+import os
+from TTS.api import TTS
+
+print('📥 Downloading TTS model (one-time setup ~1GB)...')
+tts = TTS('tts_models/multilingual/multi-dataset/xtts_v2')
+print('✅ TTS model downloaded and cached')
+
+# Verify cache location
+import torch
+cache_dir = torch.hub.get_dir()
+print(f'Cache directory: {cache_dir}')
+"
+
+# 2. Test TTS generation (should be instant after caching)
+python -c "
+from TTS.api import TTS
+print('🎵 Testing Arabic TTS (should be fast now)...')
+tts = TTS('tts_models/multilingual/multi-dataset/xtts_v2')
+tts.tts_to_file(text='مرحباً، شكراً لك', file_path='test_cached.wav')
+print('✅ TTS cached and working - test_cached.wav created')
+"
+
+# 3. Prevent cache cleanup (optional)
+# Add to your system's temp file exclusions or backup TTS cache
+```
+
+**💡 Expected TTS Behavior After Setup:**
+- **First run:** Downloads ~1GB model files (takes 2-5 minutes)
+- **Subsequent runs:** Uses cached model (loads in <30 seconds)
+- **Service restart:** Should reuse cached model
+
+**🚨 If TTS Still Downloads Every Time:**
+```bash
+# Check cache directory
+python -c "import torch; print('Cache dir:', torch.hub.get_dir())"
+
+# List cached models
+ls -la /path/to/cache/dir/  # Check actual path from above
+
+# Manual cache preservation
+# Windows: Exclude TTS cache dir from temp file cleanup
+# Linux/Mac: Backup TTS cache dir between tests
+```
+
+### **TTS Model Optimization**
+```bash
+# Use pre-cached model approach (recommended)
+from TTS.api import TTS
+
+class CachedTTS:
+    _instance = None
+
+    @classmethod
+    def get_tts(cls):
+        if cls._instance is None:
+            print('Initializing TTS model (first time only)...')
+            cls._instance = TTS('tts_models/multilingual/multi-dataset/xtts_v2')
+        return cls._instance
+
+# Usage in your code:
+tts = CachedTTS.get_tts()  # Fast after first call
+tts.tts_to_file(text='your text', file_path='output.wav')
+```
 ========================================
 Vosk Import: PASS
 TTS Import: PASS
@@ -297,6 +427,164 @@ npm run dev
 curl http://localhost:3000/api/health  # Next.js API health
 curl http://localhost:8000/health      # Voice service health
 ```
+
+---
+
+## 🚀 **Complete Local Development Setup**
+
+### **Quick Start Commands (Copy-Paste Ready)**
+
+#### **One-Time Setup (First Time Only)**
+```bash
+# 1. Navigate to project root
+cd "d:\0- Sites & services\2- voice robot"
+
+# 2. Install all dependencies
+npm install
+cd Python/voice_service
+uv sync
+
+# 3. Set up environment files
+echo "ADMIN_USERNAME=hana_admin_demo" >> ../.env.local
+echo "ADMIN_PASSWORD=DemoPass123!" >> ../.env.local
+echo "JWT_SECRET_KEY=yourdemo-jwt-secret-key-change-in-production-abcdefgh123456789" >> ../.env.local
+
+echo "VOSK_MODEL_PATH=models/vosk-model-ar-0.22-linto-1.1.0" >> .env
+echo "TELEPHONY_TOKEN=test-token" >> .env
+
+# 4. Verify models exist
+cd Python/voice_service
+ls -la models/
+# Should show: am/ conf/ graph/ ivector/ rescore/
+
+# 5. Run model verification
+python tests/test_models_simple.py
+```
+
+#### **Starting Services (Every Development Session)**
+
+**Terminal 1: Voice Service (Python)**
+```bash
+# From project root
+cd "d:\0- Sites & services\2- voice robot\Python\voice_service"
+
+# Start voice service on port 8000
+uv run python -m app.main
+
+# Or with uvicorn reload (for development)
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Expected output:
+# 🚀 Starting Arabic Healthcare Voice Service...
+# INFO:     Uvicorn running on http://0.0.0.0:8000
+# ✅ Voice service ready!
+```
+
+**Terminal 2: Next.js App**
+```bash
+# From project root (separate terminal)
+cd "d:\0- Sites & services\2- voice robot"
+
+# Start Next.js development server
+npm run dev
+
+# Expected output:
+# Ready - started server on 0.0.0.0:3001 (uses 3001 if 3000 busy)
+# ✓ Compiled successfully
+```
+
+#### **Testing the Complete Setup**
+
+**Terminal 3: Verification Tests**
+```bash
+# Test voice service health
+curl http://localhost:8000/health
+
+# Test Next.js health
+curl http://localhost:3001/api/health
+
+# Test authentication API
+curl -X POST http://localhost:3001/api/auth \
+  -H "Content-Type: application/json" \
+  -d '{"action":"validate"}'
+```
+
+### **Access Your Application**
+
+1. **Admin Dashboard:** http://localhost:3001
+   - Login with: `hana_admin_demo` / `DemoPass123!`
+   - Should redirect to full dashboard with sidebar
+
+2. **Voice Tester:** http://localhost:3001/admin/voice-tester
+   - Test WebSocket connection to voice service
+   - Arabic voice chat functionality
+
+3. **Voice Service API:** http://localhost:8000/docs
+   - Interactive API documentation
+   - WebSocket endpoint testing
+
+### **Common Startup Issues & Solutions**
+
+#### **Port Conflicts**
+```bash
+# Check what's using ports
+netstat -an | find "3000"
+netstat -an | find "8000"
+
+# Kill conflicting processes if needed
+# Windows: Use Task Manager or taskkill /PID <pid>
+```
+
+#### **Model Loading Errors**
+```bash
+# Check model directory
+cd Python/voice_service
+ls -la models/
+
+# Verify correct model path in .env
+cat .env | grep VOSK_MODEL_PATH
+
+# Expected: VOSK_MODEL_PATH=models/vosk-model-ar-0.22-linto-1.1.0
+```
+
+#### **Python Environment Issues**
+```bash
+# Activate uv environment (if using virtual env)
+cd Python/voice_service
+uv sync
+
+# Check Python version
+python --version
+
+# Verify imports work
+python -c "from vosk import Model; from TTS.api import TTS; print('OK')"
+```
+
+#### **Development Server Won't Start**
+```bash
+# Clear Next.js cache
+rm -rf .next/
+npm run build
+npm run dev
+
+# Or try npm cache clear
+npm cache clean --force
+npm install
+npm run dev
+```
+
+### **🎯 Development Workflow**
+
+1. **Start Services:** Voice service first (takes longer), then Next.js
+2. **Login:** Use demo credentials to access admin dashboard
+3. **Test Voice:** Use voice-tester page for WebSocket testing
+4. **Debug:** Check browser DevTools for WebSocket connections
+5. **Iterate:** Changes to voice service auto-reload, Next.js hot reloads
+
+**Memory Usage Warning:**
+- Voice service loads ~2GB models in RAM
+- Next.js dev server uses ~300MB
+- **Total:** ~2.3GB RAM recommended
 
 ---
 
