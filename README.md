@@ -109,6 +109,124 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
 
+## Configuration
+
+### Environment Variables Setup
+
+#### Required Variables
+Before running the application, you must configure the following environment variables:
+
+1. **Copy the example file:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Configure Supabase (Required):**
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+   Get these from your [Supabase project dashboard](https://supabase.com/dashboard).
+
+3. **Configure JWT Security (Required):**
+   ```env
+   JWT_SECRET_KEY=your_secure_random_jwt_secret_key
+   ```
+   Generate a secure random string for JWT token signing.
+
+#### Optional Variables
+```env
+# Admin access for development/testing
+ADMIN_USERNAME=hana_admin
+ADMIN_PASSWORD=secure_password
+
+# OpenAI integration
+OPENAI_API_KEY=sk-your_openai_key
+OPENAI_MODEL=tts-1
+
+# Voice service communication
+VOICE_SERVICE_URL=http://localhost:8000
+VOICE_SERVICE_SECRET=your_voice_service_secret
+
+# Telephony integration
+FREEPBX_HOST=your_freepbx_host
+FREEPBX_USERNAME=username
+FREEPBX_PASSWORD=password
+```
+
+### Database Configuration
+
+#### Supabase Setup
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Go to Settings → API to get your URL and anon key
+3. Run the SQL schema from `supabase_schema.sql`:
+   ```sql
+   -- Execute in Supabase SQL Editor or via CLI
+   \i supabase_schema.sql
+   ```
+
+#### Required Tables
+The application requires these core tables:
+- `clients` - Healthcare organizations
+- `customers` - Patients/patients
+- `call_logs` - Call tracking records
+- `survey_responses` - Health survey data
+- `audio_sets` - Voice survey templates
+- `company_greetings` - Hospital branding messages
+
+### Authentication Setup
+
+#### Client Authentication
+Healthcare organizations authenticate using API keys:
+```typescript
+// Example authentication request
+{
+  "action": "authenticate",
+  "clientId": "test_client_123",
+  "apiKey": "your_api_key_here"
+}
+```
+
+#### Admin Access (Development)
+For administrative functions during development:
+```env
+ADMIN_USERNAME=hana_admin
+ADMIN_PASSWORD=secure_password_123
+```
+
+### Voice Service Configuration
+
+#### Python Voice Service
+The FastAPI voice service handles audio processing:
+```bash
+# Install Python dependencies
+cd Python/voice_service
+pip install -r requirements.txt
+
+# Start voice service
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+#### Environment Variables
+```env
+VOICE_SERVICE_URL=http://localhost:8000
+VOICE_SERVICE_SECRET=secure_voice_service_key
+```
+
+### Security Considerations
+
+#### Environment Variable Security
+- Never commit `.env.local` files to version control
+- Use different values for development/staging/production
+- Rotate JWT secrets regularly
+- Use strong, unique passwords for admin access
+
+#### API Security
+- All API endpoints require authentication
+- Client data is isolated by tenant ID
+- Rate limiting prevents abuse
+- Sensitive data is encrypted in transit
+
 ## Production Architecture
 
 ### API Endpoints (All Deployed & Functional)

@@ -34,17 +34,7 @@ interface AudioSet {
   audio_files?: AudioFile[];
 }
 
-interface CompanyGreeting {
-  name: string;
-  description: string;
-  greeting_id: string;
-  client_id: string;
-  language: string;
-  audio_file_url: string;
-  duration: number;
-  created_at: string;
-  updated_at: string;
-}
+
 
 interface CallResult {
   patientId: string;
@@ -84,8 +74,8 @@ export default function CallingRobotPage() {
   const [templates, setTemplates] = useState<QuestionTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedTemplateData, setSelectedTemplateData] = useState<QuestionTemplate | null>(null);
-  const [selectedGreeting, setSelectedGreeting] = useState('');
-  const [greetings, setGreetings] = useState<CompanyGreeting[]>([]);
+
+
   const [callHistory, setCallHistory] = useState<Array<{
     patient: string;
     phone: string;
@@ -133,12 +123,8 @@ export default function CallingRobotPage() {
           setTemplates(transformedTemplates);
         }
 
-        // Fetch company greetings
-        const greetingResponse = await fetch('/api/data?action=get-company-greetings');
-        if (greetingResponse.ok) {
-          const greetingData = await greetingResponse.json();
-          setGreetings(greetingData.greetings || []);
-        }
+        // Fetch company greetings - kept for backward compatibility but no longer used
+        await fetch('/api/data?action=get-company-greetings');
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -280,8 +266,7 @@ export default function CallingRobotPage() {
         setIsCalling(false);
 
         // Save batch results to database
-        const selectedGreetingData = greetings.find(g => g.greeting_id === selectedGreeting);
-        const companyName = selectedGreetingData ? selectedGreetingData.name : 'Demo Hospital';
+        const companyName = 'Demo Hospital'; // Use default since company greeting is now part of the script
 
         try {
           const batchResult = await fetch('/api/data', {
@@ -293,7 +278,7 @@ export default function CallingRobotPage() {
               action: 'save-call-batch-results',
               clientId: 'demo-client', // In real app, this would come from auth
               companyName,
-              greetingId: selectedGreeting,
+
               audioSetId: selectedTemplateData?.id,
               callResults
             })
@@ -366,33 +351,20 @@ export default function CallingRobotPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Company Greeting
-              </label>
-              <Select
-                options={greetings.map(greeting => ({
-                  value: greeting.greeting_id,
-                  label: `${greeting.name} (${greeting.language.toUpperCase()})`
-                }))}
-                placeholder="Choose a company greeting"
-                defaultValue={selectedGreeting}
-                onChange={(value: string) => setSelectedGreeting(value)}
-                className="mb-4"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Audio Set
+                Select Agent Script Set
               </label>
               <Select
                 options={templates.map(template => ({
                   value: template.id.toString(),
                   label: `${template.template_name} (${template.language.toUpperCase()})`
                 }))}
-                placeholder="Choose an audio set"
+                placeholder="Choose a script from Agent Configuration"
                 onChange={handleTemplateChange}
                 className="mb-4"
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Scripts include company greetings and call flows configured in the <a href="/agent-configuration" className="text-blue-600 hover:underline" target="_blank">Agent Configuration</a> page
+              </p>
             </div>
 
             <div>
@@ -474,7 +446,7 @@ export default function CallingRobotPage() {
       <div className="flex justify-center">
         <Button
           onClick={initiateCalls}
-          disabled={isCalling || !excelFile || !selectedTemplate || !selectedGreeting}
+          disabled={isCalling || !excelFile || !selectedTemplate}
           className="px-8 py-3"
           variant="primary"
         >

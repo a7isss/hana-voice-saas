@@ -7,48 +7,22 @@ services:
     region: frankfurt
     buildCommand: npm install && npm run build
     startCommand: npm start
-    healthCheckPath: /api/auth
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        value: https://piyrtitsyhesufkceqyy.supabase.co
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXJ0aXRzeWhlc3Vma2NlcXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTk3NTgsImV4cCI6MjA3NDI3NTc1OH0.Egoc-crtscBcWMzO9aH5VEp4_9Y5upS3Ae5zTGUE5Lc
-      - key: OPENAI_API_KEY
-        value: your-actual-openai-api-key-here  # SET THIS IN RENDER DASHBOARD
-      - key: JWT_SECRET_KEY
-        generateValue: true
       - key: NEXT_PUBLIC_API_URL
         value: https://hana-voice-saas.onrender.com
-      - key: ADMIN_USERNAME
-        value: hana_admin_7f3a2b1c
-      - key: ADMIN_PASSWORD
-        value: Xy9$mN2pQ8rT5wE4
-      - key: ENVIRONMENT
-        value: production
-      - key: LOG_LEVEL
-        value: INFO
-      - key: DEFAULT_LANGUAGE
-        value: ar
-      - key: DEFAULT_VOICE
-        value: nova
-      - key: DEFAULT_SPEED
-        value: 0.95
-      - key: TIMEZONE
-        value: Asia/Riyadh
       - key: VOICE_SERVICE_URL
         value: https://hana-voice-service.onrender.com
       - key: VOICE_SERVICE_SECRET
+        value: hana_voice_shared_secret_2024_secure_key  # Same as Python service
+      - key: ADMIN_USERNAME
+        value: hana_admin_2024
+      - key: ADMIN_PASSWORD
         generateValue: true
-      - key: TELEPHONY_SERVICE_URL
-        value: https://hana-telephony-service.onrender.com
-      - key: FREEPBX_HOST
-        value: your-freepbx-host-here  # SET IN RENDER DASHBOARD
-      - key: FREEPBX_USERNAME
-        value: your-ami-username-here  # SET IN RENDER DASHBOARD
-      - key: FREEPBX_PASSWORD
-        value: your-ami-password-here  # SET IN RENDER DASHBOARD
+      - key: JWT_SECRET_KEY
+        generateValue: true
 
   # Python Voice Service
   - type: web
@@ -56,42 +30,19 @@ services:
     env: python
     plan: free
     region: frankfurt
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+    buildCommand: pip install -r Python/voice_service/requirements.txt
+    startCommand: cd Python/voice_service && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: VOICE_SERVICE_SECRET
-        generateValue: true
+        value: hana_voice_shared_secret_2024_secure_key  # Same as Next.js
       - key: VOICE_SERVICE_TOKEN
         generateValue: true
-      - key: VOSK_MODEL_PATH
-        value: /data/models/vosk-model-ar-0.22
-      - key: TTS_HOME
-        value: /data/tts_cache
       - key: LOG_LEVEL
         value: INFO
       - key: MAX_CONCURRENT_SESSIONS
-        value: 10
+        value: "5"  # Reduced for free tier
       - key: RATE_LIMIT_PER_MINUTE
-        value: 60
+        value: "30"  # Reduced for free tier
       - key: OPENAI_API_KEY
-        value: your-actual-openai-api-key-here  # SET THIS IN RENDER DASHBOARD
-
-  # Telephony Service (Optional - for future FreePBX integration)
-  - type: web
-    name: hana-telephony-service
-    env: python
-    plan: free
-    region: frankfurt
-    buildCommand: echo "Telephony service ready"
-    startCommand: python -c "import time; print('Telephony service mock running'); time.sleep(3600)"
-    healthCheckPath: /
-    envVars:
-      - key: FREEPBX_HOST
-        value: your-freepbx-host-here  # SET IN RENDER DASHBOARD
-      - key: FREEPBX_USERNAME
-        value: your-ami-username-here  # SET IN RENDER DASHBOARD
-      - key: FREEPBX_PASSWORD
-        value: your-ami-password-here  # SET IN RENDER DASHBOARD
-      - key: LOG_LEVEL
-        value: INFO
+        value: your-openai-key-here  # SET IN RENDER DASHBOARD

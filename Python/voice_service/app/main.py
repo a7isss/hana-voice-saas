@@ -64,12 +64,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS for WebSocket connections
+# Configure CORS for WebSocket connections (production secure)
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3001")
+render_app_url = "https://hana-voice-saas.onrender.com"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for specific origins in production
+    allow_origins=[
+        frontend_url,  # Local development
+        render_app_url,  # Render production
+        "https://*.onrender.com",  # Allow all Render subdomains
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

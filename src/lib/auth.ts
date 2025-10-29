@@ -1,79 +1,110 @@
-// Authentication utilities for Hana Voice SaaS
-import { NextRequest } from 'next/server';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 
-// Secure credentials from environment variables
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+// Environment validation
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const JWT_SECRET = process.env.JWT_SECRET_KEY;
 
-if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !JWT_SECRET) {
-  throw new Error('Missing required authentication environment variables: ADMIN_USERNAME, ADMIN_PASSWORD, JWT_SECRET_KEY');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !JWT_SECRET) {
+  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, JWT_SECRET_KEY');
 }
 
-// Session management
-const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-export interface AuthSession {
-  username: string;
-  loggedInAt: number;
-  expiresAt: number;
+// Initialize Supabase client
+let supabase: SupabaseClient;
+try {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (error) {
+  throw new Error(`Failed to initialize Supabase client: ${error}`);
 }
 
-export interface JWTUser {
-  username: string;
-  iat: number;
-  exp: number;
+export interface ClientCredentials {
+  clientId: string;
+  apiKey: string;
+}
+
+export interface ClientInfo {
+  id: string;
+  name: string;
+  department: string;
+  permissions: {
+    voice_calls: boolean;
+    data_export: boolean;
+    analytics: boolean;
+  };
 }
 
 export class AuthService {
-  // Generate JWT token for authenticated user
-  static generateJWTToken(username: string): string {
-    const payload: JWTUser = {
-      username,
+  // Authenticate client credentials against database
+  static async authenticateClient(credentials: ClientCredentials): Promise<ClientInfo | null> {
+    try {
+      // Check if clients table exists and has the required structure
+      const { data: client, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', credentials.clientId)
+        .eq('api_key', credentials.apiKey)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !client) {
+        return null;
+      }
+
+      // Return client info in expected format
+      return {
+        id: client.id,
+        name: client.name || 'Unknown Client',
+        department: client.department || 'General',
+        permissions: {
+          voice_calls: client.voice_calls ?? true,
+          data_export: client.data_export ?? true,
+          analytics: client.analytics ?? true
+        }
+      };
+    } catch (error) {
+      console.error('Client authentication error:', error);
+      return null;
+    }
+  }
+
+  // Generate JWT token for authenticated client
+  static generateJWTToken(clientId: string, clientName: string): string {
+    const payload = {
+      clientId,
+      clientName,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor((Date.now() + SESSION_DURATION) / 1000)
+      exp: Math.floor((Date.now() + 24 * 60 * 60 * 1000) / 1000) // 24 hours
     };
 
     return jwt.sign(payload, JWT_SECRET!);
   }
 
-  // Validate JWT token
-  static validateJWTToken(token: string): JWTUser | null {
+  // Validate JWT token and return client info
+  static validateJWTToken(token: string): { clientId: string; clientName: string } | null {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET!) as JWTUser;
+      const decoded = jwt.verify(token, JWT_SECRET!) as jwt.JwtPayload & { clientId: string; clientName: string; exp: number };
 
       // Check if token is expired
       if (Date.now() > decoded.exp * 1000) {
         return null;
       }
 
-      return decoded;
+      return {
+        clientId: decoded.clientId,
+        clientName: decoded.clientName
+      };
     } catch {
       return null;
     }
   }
 
-  // Authenticate user credentials
+  // Legacy method for backward compatibility (admin access)
   static authenticate(username: string, password: string): boolean {
-    return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
-  }
+    const adminUsername = process.env.ADMIN_USERNAME || 'hana_admin';
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
-  // Check if user is authenticated from request
-  static isAuthenticated(request: NextRequest): boolean {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) return false;
-
-    const user = this.validateJWTToken(token);
-    return user !== null;
-  }
-
-  // Get current user from request
-  static getCurrentUser(request: NextRequest): JWTUser | null {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) return null;
-
-    return this.validateJWTToken(token);
+    return username === adminUsername && password === adminPassword;
   }
 
   // Generate secure credentials for environment variables (for initial setup)

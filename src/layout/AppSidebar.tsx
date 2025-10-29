@@ -5,13 +5,13 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   PieChartIcon,
   PlugInIcon,
   LockIcon,
+  AudioIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 
@@ -29,9 +29,24 @@ const navItems: NavItem[] = [
     path: "/",
   },
   {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
+    icon: <AudioIcon />,
+    name: "Voice Service Tester",
+    path: "/voice-tester",
+  },
+  {
+    icon: <PlugInIcon />,
+    name: "Calling Robot",
+    path: "/calling-robot",
+  },
+  {
+    icon: <PlugInIcon />,
+    name: "Demo Test Call",
+    path: "/demo-test-call",
+  },
+  {
+    icon: <PlugInIcon />,
+    name: "Agent Configuration",
+    path: "/agent-configuration",
   },
 ];
 
@@ -40,19 +55,9 @@ const othersItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Analytics",
     subItems: [
+      { name: "Reports", path: "/reports", pro: false },
       { name: "Line Chart", path: "/line-chart", pro: false },
       { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Voice Services",
-    subItems: [
-      { name: "Voice Service Tester", path: "/voice-tester", pro: false },
-      { name: "Calling Robot", path: "/calling-robot", pro: false },
-      { name: "Demo Test Call", path: "/demo-test-call", pro: false },
-      { name: "Audio Conversion", path: "/audio-conversion", pro: false },
-      { name: "Reports", path: "/reports", pro: false },
     ],
   },
 ];

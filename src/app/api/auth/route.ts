@@ -1,5 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/auth';
+import { z } from 'zod';
+
+// Validation schemas
+const authenticateSchema = z.object({
+  action: z.literal('authenticate'),
+  clientId: z.string().min(1, 'Client ID is required'),
+  apiKey: z.string().min(1, 'API key is required')
+});
+
+const loginSchema = z.object({
+  action: z.literal('login'),
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required')
+});
+
+const logoutSchema = z.object({
+  action: z.literal('logout')
+});
+
+const validateSchema = z.object({
+  action: z.literal('validate')
+});
 
 export async function GET() {
   // Simple health check
@@ -15,29 +38,79 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, username, password } = body;
 
-    switch (action) {
-      case 'login':
-        if (!username || !password) {
+    // Determine which schema to use based on action
+    let validatedData;
+    try {
+      const action = body.action;
+
+      switch (action) {
+        case 'authenticate':
+          validatedData = authenticateSchema.parse(body);
+          break;
+        case 'login':
+          validatedData = loginSchema.parse(body);
+          break;
+        case 'logout':
+          validatedData = logoutSchema.parse(body);
+          break;
+        case 'validate':
+          validatedData = validateSchema.parse(body);
+          break;
+        default:
           return NextResponse.json(
-            { error: 'Username and password are required' },
+            { error: 'Invalid action' },
             { status: 400 }
+          );
+      }
+    } catch (validationError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: (validationError as any).errors },
+        { status: 400 }
+      );
+    }
+
+    switch (validatedData.action) {
+      case 'authenticate':
+        // Client-based authentication using API key
+        const clientInfo = await AuthService.authenticateClient({
+          clientId: validatedData.clientId,
+          apiKey: validatedData.apiKey
+        });
+
+        if (clientInfo) {
+          // Generate JWT token for authenticated client
+          const token = AuthService.generateJWTToken(clientInfo.id, clientInfo.name);
+
+          return NextResponse.json({
+            authenticated: true,
+            client: clientInfo,
+            message: 'Client authentication successful'
+          }, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        } else {
+          return NextResponse.json(
+            { error: 'Invalid client credentials' },
+            { status: 401 }
           );
         }
 
-        // Authenticate user
-        const isAuthenticated = AuthService.authenticate(username, password);
-        
+      case 'login':
+        // Legacy admin login for backward compatibility
+        const isAuthenticated = AuthService.authenticate(validatedData.username, validatedData.password);
+
         if (isAuthenticated) {
-          // Generate JWT token
-          const token = AuthService.generateJWTToken(username);
+          // Generate JWT token for admin user
+          const token = AuthService.generateJWTToken(validatedData.username, 'Admin');
 
           // Create response with cookie
           const response = NextResponse.json({
             success: true,
-            message: 'Login successful',
-            user: { username }
+            message: 'Admin login successful',
+            user: { username: validatedData.username }
           });
 
           // Set HTTP-only cookie for session
@@ -52,7 +125,7 @@ export async function POST(request: NextRequest) {
           return response;
         } else {
           return NextResponse.json(
-            { error: 'Invalid username or password' },
+            { error: 'Invalid admin credentials' },
             { status: 401 }
           );
         }
@@ -75,18 +148,24 @@ export async function POST(request: NextRequest) {
         return logoutResponse;
 
       case 'validate':
-        // Validate current session
-        const isLoggedIn = AuthService.isAuthenticated(request);
-        const user = AuthService.getCurrentUser(request);
+        // Validate current admin session from cookie
+        const authCookie = request.cookies.get('auth-token')?.value;
+        if (!authCookie) {
+          return NextResponse.json({
+            authenticated: false,
+            user: null
+          });
+        }
 
+        const userInfo = AuthService.validateJWTToken(authCookie);
         return NextResponse.json({
-          authenticated: isLoggedIn,
-          user: user ? { username: user.username } : null
+          authenticated: !!userInfo,
+          user: userInfo ? { username: userInfo.clientId } : null
         });
 
       default:
         return NextResponse.json(
-          { error: 'Invalid action' },
+          { error: 'Unsupported action' },
           { status: 400 }
         );
     }

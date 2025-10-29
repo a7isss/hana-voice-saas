@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { AuthService } from '@/lib/auth';
+
+const authTokenSchema = z.object({
+  action: z.literal('get-auth-token'),
+  clientId: z.string().min(1, 'Client ID is required'),
+  apiKey: z.string().min(1, 'API key is required')
+});
 
 // Voice service configuration
 const VOICE_SERVICE_URL = process.env.VOICE_SERVICE_URL || 'http://localhost:8000';
@@ -59,14 +67,55 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action } = body;
 
+    // All actions require authentication - validate and authenticate first
+    let clientInfo;
+    try {
+      // Validate request has required auth fields
+      const authData = authTokenSchema.parse(body);
+
+      // Authenticate client
+      clientInfo = await AuthService.authenticateClient({
+        clientId: authData.clientId,
+        apiKey: authData.apiKey
+      });
+
+      if (!clientInfo) {
+        return NextResponse.json(
+          { error: 'Authentication failed' },
+          { status: 401 }
+        );
+      }
+
+      // Check voice permissions
+      if (!clientInfo.permissions.voice_calls) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions for voice operations' },
+          { status: 403 }
+        );
+      }
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        // Zod validation error
+        return NextResponse.json(
+          { error: 'Invalid request data', details: error.errors },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Authentication failed' },
+        { status: 401 }
+      );
+    }
+
+    // Now handle the action
+    const action = body.action;
     switch (action) {
       case 'generate-test-audio':
-        return await generateTestAudio();
+        return await generateTestAudio(clientInfo);
 
       case 'get-auth-token':
-        return await getAuthToken();
+        return await getAuthToken(clientInfo);
 
       default:
         return NextResponse.json(
@@ -83,7 +132,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateTestAudio() {
+async function generateTestAudio(clientInfo: { id: string; name: string; permissions: { voice_calls: boolean } }) {
   try {
     // For now, return a mock response since the actual voice generation
     // would be handled by the Python service
@@ -92,6 +141,8 @@ async function generateTestAudio() {
     return NextResponse.json({
       success: true,
       audioUrl: mockAudioUrl,
+      clientId: clientInfo.id,
+      clientName: clientInfo.name,
       message: 'Test audio generated successfully (mock response)',
       timestamp: new Date().toISOString()
     });
@@ -104,7 +155,7 @@ async function generateTestAudio() {
   }
 }
 
-async function getAuthToken() {
+async function getAuthToken(clientInfo: { id: string; name: string; permissions: { voice_calls: boolean } }) {
   try {
     if (!VOICE_SERVICE_SECRET) {
       return NextResponse.json(
@@ -131,6 +182,8 @@ async function getAuthToken() {
       success: true,
       token: authData.token,
       sessionId: authData.session_id,
+      clientId: clientInfo.id,
+      clientName: clientInfo.name,
       voiceServiceUrl: VOICE_SERVICE_URL,
       message: 'Authentication token obtained successfully',
       timestamp: new Date().toISOString()

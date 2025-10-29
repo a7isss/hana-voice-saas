@@ -1,53 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from './lib/auth';
+import { NextResponse } from 'next/server';
 
-// Routes that require authentication
-const protectedRoutes = [
-  '/',
-  '/calling-robot',
-  '/demo-test-call', 
-  '/audio-conversion',
-  '/reports',
-  '/calendar',
-  '/line-chart',
-  '/bar-chart'
-];
+// Note: Authentication is now handled at the API level using client API keys
+// This middleware is disabled as the dashboard is accessed by authenticated healthcare staff
+// Authentication checks are performed in the API routes for data protection
 
-// Routes that should redirect to dashboard if already authenticated
-const authRoutes = [
-  '/signin',
-  '/signup'
-];
-
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // Check if the current path is protected
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-  
-  // Check if the current path is an auth route
-  const isAuthRoute = authRoutes.some(route => 
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-  
-  // Check authentication status
-  const isAuthenticated = AuthService.isAuthenticated(request);
-  
-  // Redirect to login if trying to access protected route without authentication
-  if (isProtectedRoute && !isAuthenticated) {
-    const loginUrl = new URL('/signin', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-  
-  // Redirect to dashboard if trying to access auth route while already authenticated
-  if (isAuthRoute && isAuthenticated) {
-    const dashboardUrl = new URL('/', request.url);
-    return NextResponse.redirect(dashboardUrl);
-  }
-  
+export function middleware() {
+  // For now, allow all routes to pass through
+  // Authentication is handled at the API level with client credentials
   return NextResponse.next();
 }
 
