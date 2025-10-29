@@ -30,8 +30,9 @@ services:
     env: python
     plan: free
     region: frankfurt
-    buildCommand: pip install -r Python/voice_service/requirements.txt
-    startCommand: cd Python/voice_service && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    rootDir: Python/voice_service
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: VOICE_SERVICE_SECRET
