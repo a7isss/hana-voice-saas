@@ -769,14 +769,85 @@ async def telephony_websocket_endpoint(websocket: WebSocket, token: str = None):
         if session_id in active_sessions:
             active_sessions[session_id]["active"] = False
 
+@app.websocket("/ws/tts")
+async def tts_websocket_endpoint(websocket: WebSocket):
+    """Standalone TTS (Text-to-Speech) endpoint for voice script testing
+
+    Simple single-step process:
+    1. Text input (prefixed with 'tts:') → Arabic TTS audio output
+
+    This endpoint converts Arabic text to speech without any STT processing.
+    Used by voice-tester script playback feature.
+    URL: ws://localhost:8000/ws/tts
+    """
+    await websocket.accept()
+    session_id = f"tts_{id(websocket)}"
+    logger.info(f"🔊 TTS session started: {session_id}")
+
+    try:
+        while True:
+            logger.info(f"🔊 {session_id}: Waiting for text data...")
+            # Receive text message (e.g., "tts:مرحباً بكم")
+            text_message = await websocket.receive_text()
+            logger.info(f"📝 {session_id}: TEXT RECEIVED - '{text_message}'")
+
+            if voice_service:
+                # Check if message starts with 'tts:' prefix
+                if text_message.startswith('tts:'):
+                    arabic_text = text_message[4:].strip()  # Remove 'tts:' prefix
+                    logger.info(f"🔊 {session_id}: Processing TTS for: '{arabic_text}'")
+
+                    if arabic_text:
+                        # Generate TTS audio
+                        audio_file_path = voice_service.text_to_speech(arabic_text)
+
+                        if audio_file_path and os.path.exists(audio_file_path):
+                            # Read and send audio file
+                            with open(audio_file_path, "rb") as audio_file:
+                                audio_bytes = audio_file.read()
+
+                            logger.info(f"✅ {session_id}: TTS audio generated: {len(audio_bytes)} bytes")
+                            await websocket.send_bytes(audio_bytes)
+                            logger.info(f"📤 {session_id}: Sent TTS audio to client")
+
+                            # Clean up temporary file
+                            try:
+                                os.remove(audio_file_path)
+                                logger.debug(f"🗑️ {session_id}: Cleaned up {audio_file_path}")
+                            except Exception as e:
+                                logger.warning(f"⚠️ {session_id}: Failed to clean up {audio_file_path}: {e}")
+                        else:
+                            logger.error(f"❌ {session_id}: TTS failed to generate audio")
+                            await websocket.send_text("error: tts generation failed")
+                    else:
+                        logger.warning(f"⚠️ {session_id}: Empty text received")
+                        await websocket.send_text("error: empty text")
+                else:
+                    logger.warning(f"⚠️ {session_id}: Invalid message format: '{text_message}'")
+                    await websocket.send_text("error: invalid format - use 'tts:Arabic text'")
+            else:
+                logger.error(f"❌ {session_id}: Voice service not available")
+                await websocket.send_text("error: voice service unavailable")
+
+    except WebSocketDisconnect:
+        logger.info(f"🔊 TTS session {session_id} disconnected")
+
+    except Exception as e:
+        logger.error(f"❌ TTS session {session_id} error: {e}")
+        logger.error(f"❌ Error details: {type(e).__name__}: {str(e)}")
+        try:
+            await websocket.send_text(f"error: {str(e)}")
+        except:
+            pass  # Socket might be closed
+
 @app.websocket("/ws/echo")
 async def echo_websocket_endpoint(websocket: WebSocket):
-    """Simple echo endpoint for testing STT→TTS flow
+    """Simple STT-only endpoint for testing Arabic speech recognition
 
-    Simple 2-step process:
-    1. Audio input → STT transcription
-    2. STT text → TTS echo back (same text repeated)
+    Simple single-step process:
+    1. Audio input → Arabic STT transcription ONLY (no TTS response)
 
+    This endpoint is for testing STT functionality without automatic replies.
     URL: ws://localhost:8000/ws/echo
     """
     await websocket.accept()
@@ -814,38 +885,20 @@ async def echo_websocket_endpoint(websocket: WebSocket):
                     clean_text = transcribed_text.strip()
                     logger.info(f"✅ {session_id}: Valid transcription found: '{clean_text}'")
 
-                    # Send the transcription text first
+                    # Send the transcription text ONLY (no TTS echo)
                     text_msg = f"transcription: {clean_text}"
-                    await websocket.send_text(text_msg)
-                    logger.info(f"📤 {session_id}: SENT transcription to client: {text_msg}")
-
-                    # Generate TTS for the exact transcribed text (echo)
-                    logger.info(f"🔊 {session_id}: Starting TTS generation for: '{clean_text}'")
-                    audio_path = voice_service.text_to_speech(clean_text)
-                    logger.info(f"🎵 {session_id}: TTS generation result - path: {audio_path}, exists: {os.path.exists(audio_path) if audio_path else False}")
-
-                    if audio_path and os.path.exists(audio_path):
-                        file_size = os.path.getsize(audio_path)
-                        # Send back the audio as binary
-                        with open(audio_path, "rb") as audio_file:
-                            audio_bytes = audio_file.read()
-                        logger.info(f"🎵 {session_id}: Sending {len(audio_bytes)} bytes audio (file size: {file_size})")
-                        await websocket.send_bytes(audio_bytes)
-                        logger.info(f"📤 {session_id}: AUDIO SENT successfully to client")
-
-                        # Clean up
-                        try:
-                            os.remove(audio_path)
-                            logger.info(f"🧹 {session_id}: Cleaned up audio file: {audio_path}")
-                        except Exception as e:
-                            logger.warning(f"{session_id}: Failed to clean up {audio_path}: {e}")
-                    else:
-                        logger.warning(f"{session_id}: No echo audio generated")
-                        await websocket.send_text("error: failed to generate echo audio")
+                    try:
+                        await websocket.send_text(text_msg)
+                        logger.info(f"📤 {session_id}: SENT transcription to client: {text_msg}")
+                    except Exception as send_error:
+                        logger.error(f"❌ {session_id}: Failed to send transcription: {send_error}")
                 else:
                     logger.warning(f"❌ {session_id}: No transcription detected - empty result")
                     logger.info(f"❌ {session_id}: Sending error message to client")
-                    await websocket.send_text("error: no speech detected")
+                    try:
+                        await websocket.send_text("error: no speech detected")
+                    except Exception as send_error:
+                        logger.error(f"❌ {session_id}: Failed to send error message: {send_error}")
             else:
                 logger.error(f"{session_id}: Voice service not available")
                 await websocket.send_text("error: voice service unavailable")

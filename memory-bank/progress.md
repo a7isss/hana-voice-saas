@@ -19,13 +19,13 @@ Hana Voice SaaS has successfully completed the major application restructure, tr
 - [x] **Supabase Integration**: PostgreSQL database with `audio_sets` table, real-time capabilities
 - [x] **Multi-tenant Architecture**: Client-based authentication system
 
-### API Endpoints (100% Functional)
+### API Endpoints (Some Functional)
 - [x] **`GET /api/auth`**: Authentication health check & client management
 - [x] **`POST /api/auth`**: Client authentication with test credentials
-- [x] **`GET /api/voice`**: OpenAI voice service availability confirmation
+- [x] **`GET /api/voice`**: **BROKEN** - References OpenAI (not actually used)
 - [x] **`GET /api/data`**: Extended with `get-audio-sets` and `save-audio-set` operations
 - [x] **`POST /api/data`**: Audio set creation and management CRUD operations
-- [x] **`GET /api/telephony`**: FreePBX integration status monitoring
+- [x] **`GET /api/telephony`**: **BROKEN** - References FreePBX (not actually used)
 
 ### Authentication System
 - [x] **Client ID Authentication**: `test_client_123` validated

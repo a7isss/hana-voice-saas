@@ -84,12 +84,24 @@ class VoiceService:
             try:
                 # Quick test synthesis with default speaker
                 test_output = os.path.join(os.getcwd(), "health_check_test.wav")
+
+                # Try to get available speakers first
+                try:
+                    speakers = self.tts_model.speakers
+                    if speakers and len(speakers) > 0:
+                        speaker = speakers[0]  # Use first available speaker
+                        logger.info(f"Using TTS speaker: {speaker}")
+                    else:
+                        speaker = None
+                except:
+                    speaker = None
+
                 self.tts_model.tts_to_file(
                     text="اختبار",
                     file_path=test_output,
                     language="ar",
-                    speaker_wav=None,  # Use default speaker
-                    speaker="female_en_0"  # Default female English speaker as base
+                    speaker_wav=None,
+                    speaker=speaker
                 )
 
                 if os.path.exists(test_output):
@@ -231,12 +243,23 @@ class VoiceService:
 
                 # Generate speech with timeout protection
                 start_time = time.time()
+
+                # Try to get available speakers first
+                try:
+                    speakers = self.tts_model.speakers
+                    if speakers and len(speakers) > 0:
+                        speaker = speakers[0]  # Use first available speaker
+                    else:
+                        speaker = None
+                except:
+                    speaker = None
+
                 self.tts_model.tts_to_file(
                     text=text,
                     file_path=output_path,
                     language=language,
-                    speaker_wav=None,  # Use default speaker
-                    speaker="female_en_0"  # Default female English speaker as base
+                    speaker_wav=None,
+                    speaker=speaker
                 )
                 generation_time = time.time() - start_time
 

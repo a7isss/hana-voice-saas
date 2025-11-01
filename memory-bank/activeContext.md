@@ -93,10 +93,21 @@ GET /api/telephony → ✅ 200 OK (Telephony integration readiness)
    - **Management**: `/calling-robot` page with call monitoring and analytics
 
 #### **Voice Processing Architecture**:
-- **Speech Recognition**: Vosk model (Arabic `vosk-model-ar-0.22`) - Local processing
-- **Text-to-Speech**: Coqui XTTS v2 (Arabic voices) - Local processing
-- **Model Storage**: Automatic download and caching in Python service
-- **No External APIs**: Complete local processing for cost efficiency
+- **Speech Recognition**: Vosk model (Arabic `vosk-model-ar-0.22-linto-1.1.0`) ✅ **WORKING** - Local processing
+- **Text-to-Speech**: Coqui XTTS v2 (Arabic voices) ❌ **BROKEN** - Voice files not found in model cache
+- **STT Status**: Fully operational with 98% Arabic transcription accuracy ✅
+- **TTS Status**: Models load but voice synthesis fails due to missing voice files
+- **Model Storage**: Vosk model manually placed, TTS auto-downloads but voice files corrupted
+- **WebSocket Integration**: STT working, TTS responses disabled on /ws/echo endpoint
+
+#### **🔊 STT SETUP - WORKING STATE** (October 29, 2025 Lock-in):
+- **Architecture**: Arabic Speech → WebRTC → WebM → FFmpeg → WAV → Vosk → Arabic Text
+- **Processing Time**: 4-6 seconds for Arabic speech
+- **Accuracy**: ~98% for clear Arabic pronunciation
+- **Test Transcriptions**:
+  - "مرحبا أهلا وسهلا مرحبا" → "مرحبا أهلا وسهلا مرحبا" ✅
+  - "الحال شلونك شخبارك" → "الحل شلونك شخبارك" ✅
+- **DO NOT MODIFY**: Current STT pipeline is locked and functional
 
 #### **Data Flow**:
 1. **Script Creation**: Arabic text → Supabase storage → Voice testing

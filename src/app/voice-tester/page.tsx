@@ -43,8 +43,14 @@ export default function VoiceTesterPage() {
   const [currentScriptStep, setCurrentScriptStep] = useState<number>(0);
   const [scriptPlaybackState, setScriptPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle');
 
+  // TTS Request Management
+  const [ttsQueue, setTtsQueue] = useState<Array<{id: string, text: string, resolve: Function, reject: Function}>>([]);
+  const [currentTtsRequest, setCurrentTtsRequest] = useState<string | null>(null);
+  const [ttsStatus, setTtsStatus] = useState<'idle' | 'processing' | 'error'>('idle');
+
 
   const wsRef = useRef<WebSocket | null>(null);
+  const ttsWsRef = useRef<WebSocket | null>(null); // Separate WebSocket for TTS
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -179,12 +185,16 @@ export default function VoiceTesterPage() {
     }
   }, []);
 
-  // Connect to voice service echo endpoint
+  // Connect to voice services
   useEffect(() => {
     connectToVoiceService();
+    connectToTTSService();
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
+      }
+      if (ttsWsRef.current) {
+        ttsWsRef.current.close();
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -203,33 +213,26 @@ export default function VoiceTesterPage() {
         : 'ws://localhost:8000/ws/echo')
     : 'ws://localhost:8000/ws/echo';
 
+  // TTS Service Configuration - dedicated TTS endpoint
+  const TTS_SERVICE_URL = typeof window !== 'undefined'
+    ? (process.env.NODE_ENV === 'production'
+        ? `wss://hana-voice-service.onrender.com/ws/tts`
+        : 'ws://localhost:8000/ws/tts')
+    : 'ws://localhost:8000/ws/tts';
+
   const connectToVoiceService = () => {
     try {
       const ws = new WebSocket(VOICE_SERVICE_URL);
 
       ws.onopen = () => {
-        console.log('Connected to echo voice service');
+        console.log('Connected to echo voice service (STT)');
         setIsConnected(true);
       };
 
       ws.onmessage = async (event) => {
         console.log('Received message from echo service');
 
-        if (event.data instanceof Blob) {
-          // Handle audio echo response
-          console.log('Received audio echo response');
-          setCallState('processing');
-
-          // Show Hana's echo message if we have transcription
-          if (lastTranscription) {
-            addMessage('هانا (ترديد)', lastTranscription, 'hana');
-          }
-
-          await playAudioBlob(event.data);
-          setCallState('idle');
-          setLastTranscription(''); // Reset for next recording
-
-        } else if (typeof event.data === 'string') {
+        if (typeof event.data === 'string') {
           // Handle text messages
           console.log('Received text response:', event.data);
 
@@ -240,13 +243,17 @@ export default function VoiceTesterPage() {
             setLastTranscription(transcribedText);
             // Show the user's transcribed text
             addMessage('أنت', transcribedText, 'user');
+            // Reset call state to allow next conversation
+            setCallState('idle');
 
           } else if (event.data.startsWith('error:')) {
             // Handle error messages
             addMessage('خطأ', event.data, 'hana');
+            setCallState('idle');
           } else {
             // Other text messages
             addMessage('خطأ', event.data, 'hana');
+            setCallState('idle');
           }
         }
       };
@@ -266,6 +273,116 @@ export default function VoiceTesterPage() {
       wsRef.current = ws;
     } catch (error) {
       console.error('Failed to connect to echo service:', error);
+    }
+  };
+
+  const connectToTTSService = () => {
+    try {
+      const ttsWs = new WebSocket(TTS_SERVICE_URL);
+
+      ttsWs.onopen = () => {
+        console.log('Connected to TTS voice service');
+        setTtsStatus('idle');
+      };
+
+      // Persistent message handler for TTS responses
+      ttsWs.onmessage = async (event) => {
+        console.log('TTS WebSocket message received:', event.data);
+
+        if (event.data instanceof Blob) {
+          // Handle audio response
+          const requestId = currentTtsRequest;
+          if (requestId) {
+            try {
+              console.log(`Playing TTS audio for request: ${requestId}`);
+              await playAudioBlob(event.data);
+              console.log(`TTS audio playback completed for request: ${requestId}`);
+
+              // Resolve the current request
+              setTtsQueue(prev => {
+                const updated = prev.filter(req => req.id !== requestId);
+                if (updated.length > 0) {
+                  // Process next request in queue
+                  const nextRequest = updated[0];
+                  setCurrentTtsRequest(nextRequest.id);
+                  setTtsStatus('processing');
+                  // Send next request after a short delay
+                  setTimeout(() => {
+                    if (ttsWsRef.current && ttsWsRef.current.readyState === WebSocket.OPEN) {
+                      ttsWsRef.current.send(`tts:${nextRequest.text}`);
+                    }
+                  }, 100);
+                } else {
+                  setCurrentTtsRequest(null);
+                  setTtsStatus('idle');
+                }
+                return updated;
+              });
+
+              // Find and resolve the promise
+              setTtsQueue(prev => {
+                const request = prev.find(req => req.id === requestId);
+                if (request) {
+                  request.resolve();
+                }
+                return prev.filter(req => req.id !== requestId);
+              });
+
+            } catch (error) {
+              console.error(`TTS audio playback failed for request ${requestId}:`, error);
+              setTtsStatus('error');
+
+              // Reject the promise
+              setTtsQueue(prev => {
+                const request = prev.find(req => req.id === requestId);
+                if (request) {
+                  request.reject(error);
+                }
+                return prev.filter(req => req.id !== requestId);
+              });
+
+              // Clean up queue
+              setCurrentTtsRequest(null);
+              setTtsQueue([]);
+            }
+          }
+        } else if (typeof event.data === 'string') {
+          // Handle error messages
+          console.error('TTS error response:', event.data);
+          const requestId = currentTtsRequest;
+          if (requestId) {
+            setTtsQueue(prev => {
+              const request = prev.find(req => req.id === requestId);
+              if (request) {
+                request.reject(new Error(event.data));
+              }
+              return prev.filter(req => req.id !== requestId);
+            });
+            setCurrentTtsRequest(null);
+            setTtsStatus('error');
+            setTtsQueue([]); // Clear queue on error
+          }
+        }
+      };
+
+      ttsWs.onclose = (event) => {
+        console.log('TTS service connection closed:', event.code, event.reason);
+        setTtsStatus('error');
+        setCurrentTtsRequest(null);
+        setTtsQueue([]); // Clear queue on disconnect
+      };
+
+      ttsWs.onerror = (error) => {
+        console.error('TTS service error:', error);
+        setTtsStatus('error');
+        setCurrentTtsRequest(null);
+        setTtsQueue([]); // Clear queue on error
+      };
+
+      ttsWsRef.current = ttsWs;
+    } catch (error) {
+      console.error('Failed to connect to TTS service:', error);
+      setTtsStatus('error');
     }
   };
 
@@ -325,15 +442,30 @@ export default function VoiceTesterPage() {
         mimeType: 'audio/webm;codecs=opus'
       });
 
+      // Clear previous chunks
+      audioChunksRef.current = [];
+
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && callState === 'live') {
+        if (event.data.size > 0) {
+          console.log(`Audio chunk received: ${event.data.size} bytes`);
           audioChunksRef.current.push(event.data);
         }
       };
 
       recorder.onstop = async () => {
+        console.log(`Recording stopped. Total chunks: ${audioChunksRef.current.length}`);
+        console.log(`Total chunk sizes: ${audioChunksRef.current.map(chunk => chunk.size).join(', ')}`);
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await sendAudioToEchoService(audioBlob);
+        console.log(`Final audio blob size: ${audioBlob.size} bytes`);
+
+        if (audioBlob.size > 0) {
+          await sendAudioToEchoService(audioBlob);
+        } else {
+          console.error("No audio data recorded!");
+          setCallState('idle');
+          addMessage('System', 'لم يتم تسجيل أي صوت - تأكد من منح صلاحية الميكروفون', 'hana');
+        }
 
         // Clean up
         if (streamRef.current) {
@@ -341,7 +473,8 @@ export default function VoiceTesterPage() {
         }
       };
 
-      recorder.start();
+      // Request data every 100ms to ensure we get data
+      recorder.start(100);
       mediaRecorderRef.current = recorder;
 
       console.log('Started voice call');
@@ -358,6 +491,7 @@ export default function VoiceTesterPage() {
       mediaRecorderRef.current.stop();
       console.log('Ended call, processing final audio...');
     }
+    // Keep WebSocket connection open for next conversation
   };
 
   const sendAudioToEchoService = async (audioBlob: Blob) => {
@@ -400,35 +534,58 @@ export default function VoiceTesterPage() {
 
   const speakText = async (text: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      if (!isConnected || !wsRef.current) {
-        reject(new Error('Voice service not connected'));
+      if (!ttsWsRef.current || ttsWsRef.current.readyState !== WebSocket.OPEN) {
+        reject(new Error('TTS service not connected'));
         return;
       }
 
-      // Send text to TTS service via WebSocket
-      wsRef.current.send(`tts:${text}`);
+      if (ttsStatus === 'error') {
+        reject(new Error('TTS service is in error state'));
+        return;
+      }
 
-      // Listen for response (audio will come back as Blob)
-      const originalMessageHandler = wsRef.current.onmessage;
-      wsRef.current.onmessage = async (event) => {
-        if (event.data instanceof Blob) {
-          try {
-            await playAudioBlob(event.data);
-            if (wsRef.current) {
-              wsRef.current.onmessage = originalMessageHandler;
-            }
-            resolve();
-          } catch (error) {
-            if (wsRef.current) {
-              wsRef.current.onmessage = originalMessageHandler;
-            }
-            reject(error);
-          }
-        } else {
-          // Restore original handler for other messages
-          originalMessageHandler?.call(wsRef.current!, event);
-        }
+      // Create unique request ID
+      const requestId = `tts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Add to queue
+      const request = {
+        id: requestId,
+        text: text,
+        resolve: resolve,
+        reject: reject
       };
+
+      setTtsQueue(prev => [...prev, request]);
+
+      // If no current request is being processed, start processing this one
+      if (currentTtsRequest === null && ttsStatus === 'idle') {
+        setCurrentTtsRequest(requestId);
+        setTtsStatus('processing');
+
+        // Send the request
+        console.log(`Sending TTS request: ${requestId} - "${text}"`);
+        ttsWsRef.current.send(`tts:${text}`);
+      } else {
+        console.log(`Queued TTS request: ${requestId} - "${text}" (queue length: ${ttsQueue.length + 1})`);
+      }
+
+      // Set timeout for the request (30 seconds)
+      setTimeout(() => {
+        setTtsQueue(prev => {
+          const req = prev.find(r => r.id === requestId);
+          if (req) {
+            console.error(`TTS request ${requestId} timed out`);
+            req.reject(new Error('TTS request timed out'));
+            return prev.filter(r => r.id !== requestId);
+          }
+          return prev;
+        });
+
+        if (currentTtsRequest === requestId) {
+          setCurrentTtsRequest(null);
+          setTtsStatus('error');
+        }
+      }, 30000); // 30 second timeout
     });
   };
 
@@ -538,15 +695,39 @@ export default function VoiceTesterPage() {
 
         {/* Connection Status */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="font-medium">
-                {isConnected ? 'متصل بخدمة الترديد' : 'غير متصل'}
-              </span>
+          <div className="space-y-4">
+            {/* STT Connection Status */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="font-medium">
+                  {isConnected ? 'متصل بخدمة الترديد (STT)' : 'غير متصل بخدمة الترديد (STT)'}
+                </span>
+              </div>
             </div>
 
-            <div className="flex space-x-2">
+            {/* TTS Connection Status */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-3 h-3 rounded-full ${
+                  ttsStatus === 'idle' ? 'bg-green-500' :
+                  ttsStatus === 'processing' ? 'bg-blue-500 animate-pulse' :
+                  'bg-red-500'
+                }`} />
+                <span className="font-medium">
+                  {ttsStatus === 'idle' && 'متصل بخدمة النطق (TTS)'}
+                  {ttsStatus === 'processing' && 'جاري معالجة النطق (TTS)'}
+                  {ttsStatus === 'error' && 'خطأ في خدمة النطق (TTS)'}
+                </span>
+                {ttsQueue.length > 0 && (
+                  <span className="text-sm text-orange-600 dark:text-orange-400">
+                    ({ttsQueue.length} في الانتظار)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-2 pt-2 border-t border-gray-200 dark:border-gray-600">
               <Button
                 onClick={reconnect}
                 variant="outline"
@@ -632,15 +813,16 @@ export default function VoiceTesterPage() {
 
         {/* Chat Messages */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-center">المحادثة والترديد</h3>
+          <h3 className="text-lg font-semibold mb-4 text-center">نص الكلام المُسجل - Speech Transcription</h3>
 
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p>ابدأ المكالمة لرؤية النص المرسل والترديد في الوقت الفعلي</p>
+                <p>ابدأ التسجيل لرؤية النص المُسجل في الوقت الفعلي</p>
+                <p className="text-sm mt-2 text-gray-400">هذا المختبر مخصص لاختبار وظيفة الكلام إلى نص (STT) فقط</p>
               </div>
             ) : (
               messages.map((message) => (
@@ -650,13 +832,11 @@ export default function VoiceTesterPage() {
                 >
                   <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${message.type === 'user' ? 'bg-blue-600 text-white' :
-                      message.type === 'hana' ? 'bg-green-100 dark:bg-green-800 dark:text-green-100' :
-                      'bg-red-100 dark:bg-red-800 dark:text-red-100'}`}
+                      'bg-gray-100 dark:bg-gray-700 dark:text-gray-300'}`}
                   >
                     <p className="text-sm font-medium mb-1">
-                      {message.type === 'user' ? 'ما قلته:' :
-                       message.type === 'hana' ? 'هانا ترددت:' :
-                       'خطأ:'}
+                      {message.type === 'user' ? 'النص المُسجل:' :
+                       'رسالة:'}
                     </p>
                     <p className="text-sm">{message.text}</p>
                     <p className="text-xs opacity-70 mt-1">

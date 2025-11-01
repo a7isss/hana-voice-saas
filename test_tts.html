@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.ready { background-color: #e3f2fd; color: #1976d2; }
+        .status.connecting { background-color: #fff3e0; color: #f57c00; }
+        .status.success { background-color: #e8f5e8; color: #2e7d32; }
+        .status.error { background-color: #ffebee; color: #c62828; }
+        .text-display {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .audio-controls {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .download-btn { background-color: #28a745; }
+        .download-btn:hover { background-color: #1e7e34; }
+        .play-btn { background-color: #17a2b8; }
+        .play-btn:hover { background-color: #138496; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TTS WebSocket Test</h1>
+
+        <div class="text-display">
+            <strong>Text to be synthesized:</strong><br>
+            <span id="testText">مرحباً، هذا اختبار للنطق الصوتي</span>
+        </div>
+
+        <button id="testBtn">Test TTS</button>
+
+        <div id="status" class="status ready">Ready</div>
+
+        <div id="result"></div>
+
+        <div class="audio-controls" id="audioControls" style="display: none;">
+            <strong>Audio Result:</strong><br>
+            <button id="playBtn" class="play-btn">▶️ Play Audio</button>
+            <button id="downloadBtn" class="download-btn">💾 Download Audio</button>
+            <br>
+            <small id="audioInfo"></small>
+        </div>
+    </div>
+
+    <script>
+        const testBtn = document.getElementById('testBtn');
+        const status = document.getElementById('status');
+        const result = document.getElementById('result');
+        const audioControls = document.getElementById('audioControls');
+        const playBtn = document.getElementById('playBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const audioInfo = document.getElementById('audioInfo');
+        const testText = document.getElementById('testText');
+
+        let currentAudioBlob = null;
+        let audioUrl = null;
+
+        testBtn.addEventListener('click', async () => {
+            status.textContent = 'Connecting...';
+            status.className = 'status connecting';
+            testBtn.disabled = true;
+            result.textContent = '';
+            audioControls.style.display = 'none';
+
+            // Clean up previous audio
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl);
+                audioUrl = null;
+            }
+            currentAudioBlob = null;
+
+            try {
+                const ws = new WebSocket('ws://localhost:8000/ws/tts');
+
+                ws.onopen = () => {
+                    status.textContent = 'Connected! Sending test text...';
+                    console.log('WebSocket connected');
+                    const textToSend = testText.textContent;
+                    console.log('Sending text:', textToSend);
+                    ws.send('tts:' + textToSend);
+                };
+
+                ws.onmessage = (event) => {
+                    console.log('Received message:', event.data);
+
+                    if (event.data instanceof Blob) {
+                        currentAudioBlob = event.data;
+                        const sizeKB = (event.data.size / 1024).toFixed(1);
+
+                        status.textContent = `✅ Success! Received ${event.data.size} bytes (${sizeKB} KB) of audio`;
+                        status.className = 'status success';
+                        result.textContent = `Audio data received successfully for text: "${testText.textContent}"`;
+
+                        // Show audio controls
+                        audioControls.style.display = 'block';
+                        audioInfo.textContent = `Audio size: ${event.data.size} bytes (${sizeKB} KB)`;
+
+                        // Create downloadable URL
+                        audioUrl = URL.createObjectURL(event.data);
+
+                    } else {
+                        status.textContent = '❌ Received text response';
+                        status.className = 'status error';
+                        result.textContent = event.data;
+                    }
+                    ws.close();
+                };
+
+                ws.onerror = (error) => {
+                    status.textContent = '❌ WebSocket error';
+                    status.className = 'status error';
+                    result.textContent = error.toString();
+                    console.error('WebSocket error:', error);
+                    testBtn.disabled = false;
+                };
+
+                ws.onclose = (event) => {
+                    console.log('WebSocket closed:', event.code, event.reason);
+                    testBtn.disabled = false;
+                    if (status.textContent === 'Connected! Sending test text...') {
+                        status.textContent = '❌ Connection closed without response';
+                        status.className = 'status error';
+                    }
+                };
+
+            } catch (error) {
+                status.textContent = '❌ Failed to create WebSocket';
+                status.className = 'status error';
+                result.textContent = error.message;
+                console.error('Failed to create WebSocket:', error);
+                testBtn.disabled = false;
+            }
+        });
+
+        playBtn.addEventListener('click', () => {
+            if (currentAudioBlob && audioUrl) {
+                const audio = new Audio(audioUrl);
+                audio.play().catch(error => {
+                    console.error('Error playing audio:', error);
+                    alert('Error playing audio: ' + error.message);
+                });
+            } else {
+                alert('No audio available to play');
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (currentAudioBlob && audioUrl) {
+                const a = document.createElement('a');
+                a.href = audioUrl;
+                a.download = `tts_test_${Date.now()}.wav`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                alert('No audio available to download');
+            }
+        });
+    </script>
+</body>
+</html>
