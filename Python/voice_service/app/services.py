@@ -37,26 +37,43 @@ class VoiceService:
         self._check_model_health()
 
     def _load_models(self):
-        """Load both TTS and STT models with retry logic"""
+        """Load both TTS and STT models with retry logic and persistent disk support"""
         max_retries = 3
         retry_delay = 2
 
         for attempt in range(max_retries):
             try:
-                # Vosk Arabic STT Model
-                vosk_path = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-ar-0.22-linto-1.1.0")
+                # Vosk Arabic STT Model - Check persistent disk first, then local
+                persistent_stt_path = "/data/models/stt/vosk-model-ar-0.22-linto-1.1.0"
+                local_stt_path = "models/vosk-model-ar-0.22-linto-1.1.0"
+
+                vosk_path = persistent_stt_path if os.path.exists(persistent_stt_path) else local_stt_path
+
                 if not os.path.exists(vosk_path):
-                    raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path}")
+                    raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path} (checked both persistent and local paths)")
 
                 logger.info(f"Loading Vosk model from: {vosk_path} (attempt {attempt + 1}/{max_retries})")
                 self.vosk_model = Model(vosk_path)
                 logger.info("✅ Vosk Arabic model loaded successfully")
 
-                # Coqui XTTS Model (Multi-language with Arabic)
-                logger.info(f"Loading Coqui XTTS model... (attempt {attempt + 1}/{max_retries})")
-                self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
-                logger.info("✅ Coqui XTTS model loaded successfully")
+                # Coqui XTTS Model - Check persistent disk first, then download
+                persistent_tts_path = "/data/models/tts/tts_models--multilingual--multi-dataset--xtts_v2"
+                local_tts_path = "models/tts/tts_models--multilingual--multi-dataset--xtts_v2"
 
+                if os.path.exists(persistent_tts_path):
+                    # Use pre-deployed model from persistent disk
+                    logger.info(f"Loading Coqui XTTS model from persistent disk: {persistent_tts_path} (attempt {attempt + 1}/{max_retries})")
+                    self.tts_model = TTS(model_path=persistent_tts_path, config_path=os.path.join(persistent_tts_path, "config.json"), gpu=False)
+                elif os.path.exists(local_tts_path):
+                    # Use local pre-downloaded model
+                    logger.info(f"Loading Coqui XTTS model from local cache: {local_tts_path} (attempt {attempt + 1}/{max_retries})")
+                    self.tts_model = TTS(model_path=local_tts_path, config_path=os.path.join(local_tts_path, "config.json"), gpu=False)
+                else:
+                    # Download model (fallback for development)
+                    logger.info(f"Downloading Coqui XTTS model (fallback)... (attempt {attempt + 1}/{max_retries})")
+                    self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
+
+                logger.info("✅ Coqui XTTS model loaded successfully")
                 logger.info("🎯 Voice Service initialization complete!")
                 return
 

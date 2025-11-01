@@ -34,6 +34,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    disk:
+      name: voice-models
+      mountPath: /data/models
+      sizeGB: 5  # $1.25/month for 5GB persistent disk (voice models)
     envVars:
       - key: VOICE_SERVICE_SECRET
         value: hana_voice_shared_secret_2024_secure_key  # Same as Next.js
