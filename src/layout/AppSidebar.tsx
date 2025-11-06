@@ -35,6 +35,16 @@ const navItems: NavItem[] = [
   },
   {
     icon: <PlugInIcon />,
+    name: "Survey Management",
+    path: "/survey-management",
+  },
+  {
+    icon: <PlugInIcon />,
+    name: "Campaign",
+    path: "/campaign",
+  },
+  {
+    icon: <PlugInIcon />,
     name: "Calling Robot",
     path: "/calling-robot",
   },

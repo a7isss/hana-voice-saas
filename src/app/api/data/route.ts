@@ -201,6 +201,9 @@ export async function POST(request: NextRequest) {
       case 'save-call-batch-results':
         return await saveCallBatchResults(body);
 
+      case 'save-survey-response':
+        return await saveSurveyResponse(body);
+
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -833,5 +836,76 @@ async function getSummaryReport(clientId: string) {
     return NextResponse.json({ summary });
   } catch (error) {
     throw error;
+  }
+}
+
+async function saveSurveyResponse(responseData: {
+  conversation_id: string;
+  client_id: string;
+  patient_id: string;
+  department: string;
+  question_id: string;
+  question_text: string;
+  response: string;
+  confidence: number;
+  answered: boolean;
+  phone_number: string;
+  survey_id: string;
+}) {
+  try {
+    const {
+      conversation_id,
+      client_id,
+      patient_id,
+      department,
+      question_id,
+      question_text,
+      response,
+      confidence,
+      answered,
+      phone_number,
+      survey_id
+    } = responseData;
+
+    // Validate required fields
+    if (!conversation_id || !client_id || !question_id || !question_text) {
+      return NextResponse.json(
+        { error: 'Conversation ID, client ID, question ID, and question text are required' },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from('survey_responses')
+      .insert({
+        conversation_id,
+        client_id,
+        patient_id,
+        department,
+        question_id,
+        question_text,
+        response,
+        confidence,
+        answered,
+        phone_number,
+        survey_id,
+        timestamp: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      success: true,
+      response: data,
+      message: 'Survey response saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving survey response:', error);
+    return NextResponse.json(
+      { error: 'Failed to save survey response' },
+      { status: 500 }
+    );
   }
 }
