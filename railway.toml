@@ -1,0 +1,39 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+numReplicas = 1
+
+[[services]]
+name = "hana-voice-saas"
+sourcePath = "."
+buildCommand = "npm install && npm run build"
+startCommand = "npm start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+
+[services.env]
+NODE_ENV = "production"
+NEXT_PUBLIC_API_URL = "https://hana-voice-saas.up.railway.app"
+VOICE_SERVICE_URL = "https://hana-voice-service.up.railway.app"
+VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
+ADMIN_USERNAME = "hana_admin_2024"
+
+[[services]]
+name = "hana-voice-service"
+sourcePath = "Python/voice_service"
+buildCommand = "poetry install --no-dev"
+startCommand = "poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+
+[services.env]
+VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
+LOG_LEVEL = "INFO"
+MAX_CONCURRENT_SESSIONS = "10"
+RATE_LIMIT_PER_MINUTE = "60"
+
+# Note: For persistent storage (voice models), you'll need to:
+# 1. Use Railway's Volume service for persistent storage
+# 2. Mount the volume to /data/models in the Python service
+# 3. Configure the volume in Railway dashboard
