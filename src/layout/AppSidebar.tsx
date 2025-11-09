@@ -58,6 +58,11 @@ const navItems: NavItem[] = [
     name: "Agent Configuration",
     path: "/agent-configuration",
   },
+  {
+    icon: <PlugInIcon />,
+    name: "Telephony Settings",
+    path: "/telephony-settings",
+  },
 ];
 
 const othersItems: NavItem[] = [

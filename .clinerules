@@ -1,0 +1,192 @@
+# Cline Project Intelligence - Hana Voice SaaS
+
+## Project Overview
+**Hana Voice SaaS** is an Arabic voice-powered healthcare survey platform that automates patient outreach through voice calls and surveys. The system uses advanced Arabic speech recognition and text-to-speech to conduct natural conversations with patients.
+
+## Memory Bank Structure
+The project now uses a numbered memory-bank system (01-12) for organized documentation:
+
+### Core Documentation Files
+1. `memory-bank/01-project-overview.md` - Business goals and scope
+2. `memory-bank/02-technical-architecture.md` - System design and components  
+3. `memory-bank/03-active-context.md` - Current work focus and priorities
+4. `memory-bank/04-survey-questionnaire.md` - Survey system implementation
+5. `memory-bank/05-development-setup.md` - Development environment setup
+6. `memory-bank/06-voice-processing.md` - Arabic voice models and processing
+7. `memory-bank/07-telephony-integration.md` - Maqsam telephony integration
+8. `memory-bank/08-database-schema.md` - Supabase database structure
+9. `memory-bank/09-api-endpoints.md` - REST and WebSocket APIs
+10. `memory-bank/10-railway-deployment.md` - Railway deployment guide
+11. `memory-bank/11-testing-strategy.md` - Testing approaches and coverage
+12. `memory-bank/12-troubleshooting.md` - Common issues and solutions
+
+### Additional Context
+- `memory-bank/index.md` - Main documentation index
+- `memory-bank/survey_questionnaire_implementation.md` - Survey system details
+- `memory-bank/Telephony integration.md` - Telephony integration specifics
+
+## Critical Technical Patterns
+
+### Voice Processing (DO NOT MODIFY - Working State)
+- **STT Model**: `vosk-model-ar-0.22-linto-1.1.0` (500MB, 98% accuracy)
+- **TTS Model**: Coqui XTTS v2 (1GB, natural Arabic pronunciation)
+- **Audio Pipeline**: WebM/Opus → FFmpeg → WAV/PCM → Vosk → Arabic Text
+- **Sample Rate**: 16000 Hz REQUIRED for Vosk compatibility
+- **Memory Usage**: ~2GB for voice models
+
+### Development Environment
+- **Next.js App**: Port 3000 (TypeScript, Tailwind CSS)
+- **Python Voice Service**: Port 8000 (FastAPI, WebSockets)
+- **Package Manager**: UV for Python, npm for Node.js
+- **Database**: Supabase PostgreSQL with RLS
+
+### Deployment Strategy
+- **Platform**: Railway (migrated from Render)
+- **Services**: Multi-service deployment via railway.toml
+- **Storage**: Persistent volumes for voice models
+- **Health Checks**: Automatic monitoring and rollbacks
+
+## Project-Specific Patterns
+
+### Arabic Language Processing
+- Optimized for Modern Standard Arabic
+- Healthcare-specific vocabulary and phrases
+- Natural conversation flow design
+- Privacy-focused data processing
+
+### Healthcare Compliance
+- No persistent voice data storage
+- In-memory processing only
+- HIPAA-compliant architecture
+- Secure service-to-service communication
+
+### Telephony Integration
+- Maqsam pre-shared token authentication
+- WebSocket-based call handling
+- Real-time audio streaming
+- Call progress monitoring
+
+## Development Workflow
+
+### Daily Development
+1. Start voice service: `cd Python/voice_service && uv run uvicorn app.main:app`
+2. Start Next.js: `npm run dev`
+3. Test changes locally
+4. Update memory bank documentation
+
+### Quality Assurance
+- TypeScript compilation without errors
+- Voice model health checks
+- WebSocket connection testing
+- Arabic speech accuracy validation
+
+### Deployment Process
+1. Code changes pushed to main branch
+2. Railway automatic deployment
+3. Health check verification
+4. Memory bank context preservation
+
+## Critical Paths and Dependencies
+
+### Voice Model Paths (Fixed - DO NOT CHANGE)
+- **STT Model**: `Python/voice_service/models/vosk-model-ar-0.22-linto-1.1.0`
+- **FFmpeg Path**: `C:\Users\Ahmad Younis\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0-full_build\bin\ffmpeg.exe`
+- **Sample Rate**: 16000 Hz (REQUIRED)
+
+### Environment Variables
+- **Required**: Supabase URL/Key, JWT Secret, Voice Service Secret
+- **Optional**: Telephony Token, Custom Domain URLs
+- **Security**: Never commit .env files, use Railway environment variables
+
+## Known Issues and Solutions
+
+### Voice Processing Issues
+- **Model not found**: Verify model directory exists
+- **Poor STT accuracy**: Check 16kHz sample rate and mono audio
+- **TTS slow first run**: Models auto-download (~1GB) then cache
+- **WebSocket failures**: Verify voice service on port 8000
+
+### Deployment Issues
+- **Build failures**: Check TypeScript compilation and dependencies
+- **Service communication**: Verify CORS and environment variables
+- **Voice model loading**: Check persistent volume mounting
+
+## User Preferences and Workflow
+
+### Documentation Approach
+- Use numbered memory-bank system for organization
+- Update activeContext.md after significant changes
+- Maintain progress.md for completion tracking
+- Keep .clinerules updated with new patterns
+
+### Development Preferences
+- Use UV for Python package management
+- Follow TypeScript strict mode
+- Implement proper error handling and logging
+- Test Arabic voice processing thoroughly
+
+### Deployment Preferences
+- Railway over Render for persistent storage
+- Multi-service deployment approach
+- Health check monitoring
+- Automatic rollback on failures
+
+## Project Evolution Insights
+
+### Technology Stack Decisions
+- **Next.js**: Full-stack React framework with TypeScript
+- **FastAPI**: Modern Python async framework
+- **Supabase**: PostgreSQL with real-time capabilities
+- **Vosk/Coqui**: Open-source Arabic voice models
+
+### Architecture Decisions
+- **Separate Services**: Next.js frontend + Python voice service
+- **WebSocket Communication**: Real-time voice processing
+- **In-memory Processing**: Privacy-focused voice data handling
+- **Persistent Storage**: Railway volumes for voice models
+
+### Business Decisions
+- **Arabic-First**: Optimized for Saudi healthcare market
+- **Voice-First**: Natural conversation over traditional IVR
+- **SaaS Model**: Multi-tenant architecture for healthcare organizations
+- **Cost Optimization**: Open-source models vs. expensive cloud APIs
+
+## Next Steps and Priorities
+
+### Current Focus
+1. Complete memory bank restructuring
+2. Test Maqsam telephony integration
+3. Deploy latest changes to Railway
+4. Enhance Arabic survey capabilities
+
+### Future Enhancements
+- Mobile application development
+- Advanced Arabic NLP features
+- Multi-region deployment
+- EHR system integrations
+
+## Communication Patterns
+
+### Documentation Updates
+- Update memory bank after significant changes
+- Use "update memory bank" trigger for comprehensive reviews
+- Maintain context across development sessions
+- Document technical decisions and rationale
+
+### Error Handling
+- Comprehensive logging for voice processing
+- Graceful degradation for voice model failures
+- User-friendly error messages in Arabic
+- Health check monitoring for services
+
+### Security Practices
+- Environment variable protection
+- JWT token authentication
+- Row Level Security in Supabase
+- Regular security audits
+
+---
+
+**Last Updated**: November 9, 2025  
+**Project Intelligence Version**: 2.0  
+**Next Review**: After major feature additions or architecture changes
