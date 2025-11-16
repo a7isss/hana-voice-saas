@@ -44,39 +44,125 @@ export default function HospitalDashboard() {
     scheduled_appointments: 0
   });
   const [recentCampaigns, setRecentCampaigns] = useState<CampaignResult[]>([]);
+  const [campaignsData, setCampaignsData] = useState<any[]>([]);
+  const [patientsData, setPatientsData] = useState<any[]>([]);
+  const [appointmentsData, setAppointmentsData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
+  const [isLoadingPatients, setIsLoadingPatients] = useState(false);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'patients' | 'appointments'>('overview');
 
   // Mock authentication check - in real implementation, check JWT token
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Simulate hospital authentication endpoint
-        // In production: const response = await fetch('/api/hospital/auth/verify');
-        // For now, use mock data
+        // Check for JWT token
+        const token = localStorage.getItem('hospital_token');
+        const userData = JSON.parse(localStorage.getItem('hospital_user') || '{}');
+
+        if (!token || !userData.id) {
+          throw new Error('No authentication found');
+        }
+
         setCurrentHospital({
-          id: '11111111-1111-1111-1111-111111111111',
-          name: 'King Faisal Hospital',
-          name_ar: 'مستشفى الملك فيصل',
-          current_condition: 'Cardiology Department - Active'
+          id: userData.hospitalId,
+          name: userData.hospitalName || 'مستشفى',
+          name_ar: userData.hospitalName || 'Hospital',
+          current_condition: 'Active Voice Service'
         });
+
         await loadDashboardData();
         setIsLoading(false);
       } catch (error) {
         console.error('Hospital authentication failed:', error);
         // Redirect to hospital login page
-        router.push('/hospital/login');
+        router.push('/auth/hospital/login');
       }
     };
 
     checkAuth();
   }, [router]);
 
+  // Load tab data when tab changes
+  useEffect(() => {
+    const loadTabData = async () => {
+      const token = localStorage.getItem('hospital_token');
+      if (!token) return;
+
+      try {
+        switch (activeTab) {
+          case 'campaigns':
+            if (campaignsData.length === 0) {
+              setIsLoadingCampaigns(true);
+              const response = await fetch('/api/hospital/campaigns', {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                  setCampaignsData(result.data.campaigns);
+                }
+              }
+              setIsLoadingCampaigns(false);
+            }
+            break;
+
+          case 'patients':
+            if (patientsData.length === 0) {
+              setIsLoadingPatients(true);
+              const response = await fetch('/api/hospital/patients', {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                  setPatientsData(result.data.patients);
+                }
+              }
+              setIsLoadingPatients(false);
+            }
+            break;
+
+          case 'appointments':
+            if (appointmentsData.length === 0) {
+              setIsLoadingAppointments(true);
+              const response = await fetch('/api/hospital/appointments', {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                  setAppointmentsData(result.data.appointments);
+                }
+              }
+              setIsLoadingAppointments(false);
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('Error loading tab data:', error);
+      }
+    };
+
+    loadTabData();
+  }, [activeTab, campaignsData.length, patientsData.length, appointmentsData.length]);
+
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
 
-      const response = await fetch('/api/hospital/dashboard');
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('hospital_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/hospital/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
@@ -378,34 +464,512 @@ export default function HospitalDashboard() {
         )}
 
         {activeTab === 'campaigns' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">إدارة الحملات الصوتية</h3>
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📊</div>
-              <h4 className="text-lg font-medium text-gray-900 mb-2">عرض الحملات الصوتية</h4>
-              <p className="text-gray-600">يمكنك هنا عرض تفاصيل حملات الاتصال الصوتي وإحصائياتها</p>
+          <div className="space-y-6">
+            {/* Campaign Statistics Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {campaignsData.reduce((sum, c) => sum + c.total_calls, 0)}
+                    </p>
+                    <p className="text-sm text-gray-600">إجمالي المكالمات</p>
+                  </div>
+                  <div className="text-3xl">📞</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">
+                      {campaignsData.length}
+                    </p>
+                    <p className="text-sm text-gray-600">عدد الحملات</p>
+                  </div>
+                  <div className="text-3xl">📊</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {(campaignsData.reduce((sum, c) => sum + c.success_rate, 0) / Math.max(campaignsData.length, 1)).toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-gray-600">متوسط النجاح</p>
+                  </div>
+                  <div className="text-3xl">✅</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {campaignsData.reduce((sum, c) => sum + c.appointments_scheduled, 0)}
+                    </p>
+                    <p className="text-sm text-gray-600">المواعيد المجدولة</p>
+                  </div>
+                  <div className="text-3xl">📅</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Campaigns Table */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">الحملات الصوتية</h3>
+                {isLoadingCampaigns && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    جارٍ التحميل...
+                  </div>
+                )}
+              </div>
+
+              {campaignsData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          اسم الحملة
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          الحالة
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          المكالمات
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          معدل النجاح
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          المواعيد
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          تاريخ البدء
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {campaignsData.map((campaign: any) => (
+                        <tr key={campaign.id}>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            <div>
+                              <div className="font-medium">{campaign.name_ar || campaign.name}</div>
+                              <div className="text-gray-500 text-xs">{campaign.survey_name || 'استطلاع غير محدد'}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              campaign.status === 'completed'
+                                ? 'bg-green-100 text-green-800'
+                                : campaign.status === 'running'
+                                ? 'bg-blue-100 text-blue-800'
+                                : campaign.status === 'paused'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {campaign.status === 'completed' ? 'مكتمل' :
+                               campaign.status === 'running' ? 'قيد التشغيل' :
+                               campaign.status === 'paused' ? 'متوقف' : 'مسودة'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <div>{campaign.total_calls}</div>
+                            <div className="text-xs text-gray-500">
+                              ناجح: {campaign.completed_calls || 0}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {campaign.success_rate.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            {campaign.appointments_scheduled || 0}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            {campaign.scheduled_start ? new Date(campaign.scheduled_start).toLocaleDateString('ar-SA') : 'غير محدد'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📊</div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    {isLoadingCampaigns ? 'جارٍ تحميل الحملات...' : 'لا توجد حملات متاحة'}
+                  </h4>
+                  <p className="text-gray-600">
+                    {isLoadingCampaigns ? 'يرجى الانتظار' : 'لم يتم العثور على حملات اتصال صوتي لهذا المستشفى'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'patients' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">إدارة المرضى</h3>
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">👥</div>
-              <h4 className="text-lg font-medium text-gray-900 mb-2">قاعدة بيانات المرضى</h4>
-              <p className="text-gray-600">يمكنك هنا عرض قوائم المرضى المسجلين في نظام الاتصال الصوتي</p>
+          <div className="space-y-6">
+            {/* Patients Statistics Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {patientsData.length}
+                    </p>
+                    <p className="text-sm text-gray-600">إجمالي المرضى</p>
+                  </div>
+                  <div className="text-3xl">👥</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">
+                      {patientsData.filter(p => p.status === 'active').length}
+                    </p>
+                    <p className="text-sm text-gray-600">مرضى نشطين</p>
+                  </div>
+                  <div className="text-3xl">✅</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {patientsData.filter(p => p.priority_level === 'high').length}
+                    </p>
+                    <p className="text-sm text-gray-600">أولوية عالية</p>
+                  </div>
+                  <div className="text-3xl">⚠️</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {patientsData.filter(p => p.next_appointment_date).length}
+                    </p>
+                    <p className="text-sm text-gray-600">له مواعيد</p>
+                  </div>
+                  <div className="text-3xl">📅</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Patients Table */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">قاعدة بيانات المرضى</h3>
+                {isLoadingPatients && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    جارٍ التحميل...
+                  </div>
+                )}
+              </div>
+
+              {patientsData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          اسم المريض
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          رقم الهاتف
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          القسم
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          الأولوية
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          الحالة
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          آخر زيارة
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {patientsData.map((patient: any) => (
+                        <tr key={patient.id}>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            <div>
+                              <div className="font-medium">{patient.display_name}</div>
+                              <div className="text-gray-500 text-xs">
+                                ID: {patient.age ? `${patient.age} سنة` : 'العمر غير محدد'}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            {patient.phone_number || 'غير محدد'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            {patient.department || 'غير محدد'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              patient.priority_level === 'high'
+                                ? 'bg-red-100 text-red-800'
+                                : patient.priority_level === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {patient.priority_level === 'high' ? 'عالية' :
+                               patient.priority_level === 'medium' ? 'متوسطة' : 'منخفضة'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              patient.status === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : patient.status === 'inactive'
+                                ? 'bg-gray-100 text-gray-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {patient.status === 'active' ? 'نشط' :
+                               patient.status === 'inactive' ? 'غير نشط' : patient.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            {patient.last_visit_date
+                              ? new Date(patient.last_visit_date).toLocaleDateString('ar-SA')
+                              : 'لا توجد زيارة'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">👥</div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    {isLoadingPatients ? 'جارٍ تحميل المرضى...' : 'لا يوجد مرضى مسجلين'}
+                  </h4>
+                  <p className="text-gray-600">
+                    {isLoadingPatients ? 'يرجى الانتظار' : 'لم يتم العثور على مرضى مسجلين بهذا المستشفى'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'appointments' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">المواعيد المجدولة</h3>
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📅</div>
-              <h4 className="text-lg font-medium text-gray-900 mb-2">إدارة المواعيد الطبية</h4>
-              <p className="text-gray-600">يمكنك هنا عرض وإدارة المواعيد الطبية المجدولة من خلال الاتصالات الصوتية</p>
+          <div className="space-y-6">
+            {/* Appointments Statistics Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {appointmentsData.length}
+                    </p>
+                    <p className="text-sm text-gray-600">إجمالي المواعيد</p>
+                  </div>
+                  <div className="text-3xl">📅</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">
+                      {appointmentsData.filter(apt => apt.status === 'scheduled').length}
+                    </p>
+                    <p className="text-sm text-gray-600">مواعيد مجدولة</p>
+                  </div>
+                  <div className="text-3xl">⏰</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {appointmentsData.filter(apt => apt.is_today).length}
+                    </p>
+                    <p className="text-sm text-gray-600">اليوم</p>
+                  </div>
+                  <div className="text-3xl">📅</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {appointmentsData.filter(apt => apt.patient_notified).length}
+                    </p>
+                    <p className="text-sm text-gray-600">أشعارات مرسلة</p>
+                  </div>
+                  <div className="text-3xl">📱</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Appointments Table */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">جدول المواعيد الطبية</h3>
+                {isLoadingAppointments && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    جارٍ التحميل...
+                  </div>
+                )}
+              </div>
+
+              {appointmentsData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          المريض
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          التاريخ والوقت
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          النوع
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          القسم
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          الحالة
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          الإشعارات
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {appointmentsData.map((appointment: any) => (
+                        <tr key={appointment.id}>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            <div>
+                              <div className="font-medium">
+                                {appointment.patient?.display_name || 'مريض غير محدد'}
+                              </div>
+                              <div className="text-gray-500 text-xs">
+                                {appointment.patient?.department || 'قسم غير محدد'}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            <div className="font-medium">
+                              {new Date(appointment.appointment_datetime).toLocaleDateString('ar-SA', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {new Date(appointment.appointment_datetime).toLocaleTimeString('ar-SA', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                              {appointment.is_today && (
+                                <span className="text-blue-600 font-medium mr-2">(اليوم)</span>
+                              )}
+                              {appointment.is_past && !appointment.is_today && (
+                                <span className="text-red-600 font-medium mr-2">(ماضي)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {appointment.appointment_type === 'consultation' ? 'استشارة' :
+                               appointment.appointment_type === 'follow_up' ? 'متابعة' :
+                               appointment.appointment_type === 'urgent' ? 'طارئ' :
+                               appointment.appointment_type === 'checkup' ? 'فحص' :
+                               appointment.appointment_type === 'procedure' ? 'إجراء' :
+                               appointment.appointment_type || 'غير محدد'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            {appointment.department || 'غير محدد'}
+                            {appointment.room && (
+                              <div className="text-xs text-gray-500">غرفة {appointment.room}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              appointment.status === 'completed'
+                                ? 'bg-green-100 text-green-800'
+                                : appointment.status === 'scheduled'
+                                ? 'bg-blue-100 text-blue-800'
+                                : appointment.status === 'cancelled'
+                                ? 'bg-red-100 text-red-800'
+                                : appointment.status === 'in_progress'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {appointment.status === 'scheduled' ? 'مجدول' :
+                               appointment.status === 'completed' ? 'مكتمل' :
+                               appointment.status === 'cancelled' ? 'ملغي' :
+                               appointment.status === 'in_progress' ? 'قيد التنفيذ' :
+                               appointment.status === 'confirmed' ? 'مؤكد' :
+                               appointment.status === 'no_show' ? 'لم يحضر' :
+                               appointment.status || 'غير محدد'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            <div className="flex items-center justify-center space-x-1 space-x-reverse">
+                              {appointment.patient_notified && (
+                                <div className="flex items-center" title="إشعار للمريض">
+                                  <span className="text-green-600 text-sm">📱</span>
+                                </div>
+                              )}
+                              {appointment.sms_reminder_sent && (
+                                <div className="flex items-center" title="تذكير SMS">
+                                  <span className="text-blue-600 text-sm">💬</span>
+                                </div>
+                              )}
+                              {appointment.email_confirmation_sent && (
+                                <div className="flex items-center" title="تأكيد إيميل">
+                                  <span className="text-purple-600 text-sm">📧</span>
+                                </div>
+                              )}
+                              {!appointment.patient_notified && !appointment.sms_reminder_sent && !appointment.email_confirmation_sent && (
+                                <span className="text-gray-400 text-xs">لا إشعارات</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📅</div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    {isLoadingAppointments ? 'جارٍ تحميل المواعيد...' : 'لا توجد مواعيد مجدولة'}
+                  </h4>
+                  <p className="text-gray-600">
+                    {isLoadingAppointments ? 'يرجى الانتظار' : 'لم يتم العثور على مواعيد طبية لهذا المستشفى'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

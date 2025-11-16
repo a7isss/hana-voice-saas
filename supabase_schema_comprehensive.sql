@@ -756,4 +756,188 @@ FUTURE ENHANCEMENTS READY FOR:
 - Predictive analytics for patient outcomes
 */
 
-COMMENT ON DATABASE CURRENT_DATABASE IS 'Hana Voice SaaS - Comprehensive Arabic Healthcare Voice Automation Platform. Complete migration with future-proofing for advanced features.';
+-- =======================================================================
+-- TEMPLATE-BASED RESPONSE SYSTEM (Improved Customer Answer Recording)
+-- =======================================================================
+
+-- Template versioning system for unique IDs and evolution
+CREATE TABLE template_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    template_id UUID UNIQUE NOT NULL, -- Base template identifier
+    version INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(255) NOT NULL,
+    name_ar VARCHAR(255),
+    description TEXT,
+    description_ar TEXT,
+
+    -- Template metadata
+    target_audience VARCHAR(50) CHECK (target_audience IN ('patients', 'staff', 'general')),
+    estimated_duration_minutes INTEGER DEFAULT 5,
+    is_published BOOLEAN DEFAULT false,
+
+    -- Template content
+    questions_json JSONB NOT NULL, -- Complete question structure
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    UNIQUE(template_id, version) -- Each template version is unique
+);
+
+-- Template responses table (aggregated customer answers)
+CREATE TABLE template_responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    template_id UUID NOT NULL,
+    template_version_id UUID REFERENCES template_versions(id),
+
+    -- Core identifiers
+    patient_id UUID NOT NULL,
+    hospital_id UUID NOT NULL,
+    campaign_id UUID, -- Optional: linked campaign
+    call_session_id UUID, -- Optional: linked call session
+
+    -- Response metadata
+    question_count INTEGER NOT NULL, -- For validation/compatibility
+    answered_question_count INTEGER NOT NULL, -- Actual answers provided
+
+    -- Response data (JSONB for flexibility)
+    answers_json JSONB NOT NULL, -- Sorted answers array by question_order
+    metadata_json JSONB DEFAULT '{}', -- Extra context (caller info, timestamps, etc.)
+
+    -- Timing and performance
+    answered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    response_time_seconds INTEGER, -- Total time to complete
+    completion_rate DECIMAL(5,2), -- answered/total questions
+
+    -- Indexing and metadata
+    response_hash VARCHAR(64) UNIQUE, -- For deduplication
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE template_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE template_responses ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for template responses
+CREATE POLICY "super_admin_all_responses" ON template_responses
+FOR ALL USING (auth.jwt()->>'role' = 'super_admin');
+
+CREATE POLICY "hospital_staff_hospital_responses" ON template_responses
+FOR ALL USING (auth.jwt()->>'role' IN ('hospital_admin', 'hospital_staff', 'analyst') AND
+               hospital_id IN (SELECT id FROM hospitals WHERE id = auth.jwt()->>'hospital_id'));
+
+-- RLS Policies for template versions
+CREATE POLICY "template_versions_select" ON template_versions
+FOR SELECT USING (true); -- Templates are public for published versions
+
+CREATE POLICY "template_versions_manage" ON template_versions
+FOR ALL USING (auth.jwt()->>'role' IN ('hospital_admin', 'super_admin'));
+
+-- Indexes for performance (template responses)
+CREATE INDEX IF NOT EXISTS idx_template_responses_template_id ON template_responses(template_id, answered_at DESC);
+CREATE INDEX IF NOT EXISTS idx_template_responses_patient_id ON template_responses(patient_id, answered_at DESC);
+CREATE INDEX IF NOT EXISTS idx_template_responses_hospital_id ON template_responses(hospital_id, answered_at DESC);
+CREATE INDEX IF NOT EXISTS idx_template_responses_campaign_id ON template_responses(campaign_id) WHERE campaign_id IS NOT NULL;
+
+-- GIN indexes for JSONB queries
+CREATE INDEX IF NOT EXISTS idx_template_responses_answers_json ON template_responses USING GIN(answers_json);
+CREATE INDEX IF NOT EXISTS idx_template_responses_metadata_json ON template_responses USING GIN(metadata_json);
+
+-- Update triggers
+CREATE TRIGGER update_template_responses_updated_at
+  BEFORE UPDATE ON template_responses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Comments for documentation
+COMMENT ON TABLE template_versions IS 'Template versioning system - each published template gets unique IDs with version control';
+COMMENT ON TABLE template_responses IS 'Aggregated customer responses by template - stores (template_id, question_count, sorted_answers) format';
+COMMENT ON COLUMN template_versions.template_id IS 'Unique identifier shared across template versions - what you requested for unique IDs';
+COMMENT ON COLUMN template_responses.answers_json IS 'Sorted answers array by question_order for consistent formatting';
+COMMENT ON COLUMN template_responses.metadata_json IS 'Flexible metadata storage (caller info, response times, etc.)';
+COMMENT ON COLUMN template_responses.response_hash IS 'Hash for deduplication of identical responses';
+
+-- Sample template version for testing
+INSERT INTO template_versions (
+    id, template_id, version, name, name_ar, is_published,
+    questions_json, description, target_audience
+) VALUES
+(
+    '11111111-2222-3333-4444-999999999999'::uuid,
+    'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'::uuid,  -- First template unique ID
+    1,
+    'Patient Satisfaction Survey',
+    'استبيان رضا المريض',
+    true,
+    '[
+        {
+            "id": "q1",
+            "text": "هل كنت راضياً عن الخدمة المقدمة؟",
+            "text_ar": "هل كنت راضياً عن الخدمة المقدمة؟",
+            "order": 1,
+            "type": "yes_no",
+            "expected_responses": ["نعم", "لا"]
+        },
+        {
+            "id": "q2",
+            "text": "كيف تقيم مستوى النظافة؟",
+            "text_ar": "كيف تقيم مستوى النظافة؟",
+            "order": 2,
+            "type": "rating",
+            "min_rating": 1,
+            "max_rating": 5,
+            "expected_responses": ["1", "2", "3", "4", "5"]
+        },
+        {
+            "id": "q3",
+            "text": "هل تحتاج إلى حجز موعد؟",
+            "text_ar": "هل تحتاج إلى حجز موعد؟",
+            "order": 3,
+            "type": "yes_no",
+            "expected_responses": ["نعم", "لا"]
+        }
+    ]'::jsonb,
+    'Standard patient satisfaction questionnaire',
+    'patients'
+)
+ON CONFLICT (id) DO NOTHING;
+
+COMMENT ON DATABASE CURRENT_DATABASE IS 'Hana Voice SaaS - Comprehensive Arabic Healthcare Voice Automation Platform. Complete migration with future-proofing for advanced features. Template-based response system added for improved customer answer recording.';
+
+-- =======================================================================
+-- HOSPITAL REGISTRATION APPROVAL SYSTEM
+-- =======================================================================
+
+-- Hospital signup requests table (for approval workflow)
+CREATE TABLE hospital_signup_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    hospital_id UUID NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    reviewed_by UUID REFERENCES users(id), -- Super admin who approved/rejected
+    review_notes TEXT,
+    UNIQUE(user_id) -- Only one request per user
+);
+
+-- Enable RLS
+ALTER TABLE hospital_signup_requests ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies: Super admins can see all, users see their own requests
+CREATE POLICY "super_admin_all_requests" ON hospital_signup_requests
+FOR ALL USING (auth.jwt()->>'role' = 'super_admin');
+
+CREATE POLICY "hospital_user_own_requests" ON hospital_signup_requests
+FOR SELECT USING (user_id IN (
+  SELECT id FROM users WHERE email = auth.jwt()->>'email'
+));
+
+-- Triggers for updated_at
+CREATE TRIGGER update_hospital_signup_requests_updated_at
+  BEFORE UPDATE ON hospital_signup_requests
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Comments
+COMMENT ON TABLE hospital_signup_requests IS 'Pending hospital signup requests awaiting super admin approval';
+COMMENT ON COLUMN hospital_signup_requests.status IS 'pending (awaiting review), approved (granted access), rejected (denied access)';
+COMMENT ON COLUMN hospital_signup_requests.reviewed_by IS 'Super admin user_id who made the final decision';

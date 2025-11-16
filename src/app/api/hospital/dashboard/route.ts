@@ -3,18 +3,36 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyJWTToken } from '@/lib/jwt';
 
 // GET /api/hospital/dashboard - Get dashboard metrics for authenticated hospital
 export async function GET(request: NextRequest) {
   try {
+    // Verify JWT authentication
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json({ error: 'رمز المصادقة مطلوب' }, { status: 401 });
+    }
+
+    const payload = verifyJWTToken(token);
+    if (!payload || !payload.userId || !payload.hospitalId) {
+      return NextResponse.json({ error: 'رمز المصادقة غير صالح' }, { status: 401 });
+    }
+
+    // Verify user is hospital staff/admin
+    if (!['hospital_staff', 'hospital_admin'].includes(payload.role)) {
+      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 403 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get hospital_id from authenticated user (mock for now)
-    // In production: Extract from JWT token
-    const hospitalId = '11111111-1111-1111-1111-111111111111'; // King Faisal Hospital
+    // Get hospital_id from JWT token
+    const hospitalId = payload.hospitalId;
 
     // Get dashboard metrics
     const { data: metrics, error: metricsError } = await supabase

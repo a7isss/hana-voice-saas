@@ -451,6 +451,88 @@ interface VoiceHealthResponse {
 
 ---
 
+## 📊 **Template Response API** (NEW)
+
+### **Submit Template Responses**
+```typescript
+// POST /api/responses/submit
+// Submit aggregated customer answers from voice service
+
+// Request (from Python voice service)
+interface SubmitResponseRequest {
+  template_id: string;        // Unique template identifier
+  question_count: number;     // For validation
+  answers: Answer[];          // Sorted by question_order
+  metadata: {
+    session_id?: string;
+    patient_id?: string;
+    hospital_id?: string;
+    campaign_id?: string;
+    call_duration_seconds?: number;
+    voice_quality_score?: number;
+    call_context?: any;        // Maqsam context
+  };
+}
+
+interface Answer {
+  question_id: string;
+  question_order: number;
+  response: string;           // Actual answer text
+  confidence: number;         // STT confidence (0-1)
+  response_time_seconds?: number;
+}
+
+// Successful Response
+interface SubmitResponseResponse {
+  success: true;
+  response_id: string;        // Unique response identifier
+  completion_rate: number;    // 0.0-1.0
+  message: "Template response saved successfully";
+}
+```
+
+### **Get Template Responses** (Debug/Test)
+```typescript
+// GET /api/responses/submit?template_id=...&hospital_id=...
+// Retrieve template responses for testing/analytics
+interface GetResponsesRequest {
+  template_id?: string;
+  hospital_id?: string;
+}
+
+interface GetResponsesResponse {
+  template_responses: TemplateResponse[];
+  count: number;
+}
+
+interface TemplateResponse {
+  id: string;
+  template_id: string;
+  template_version_id?: string;
+  hospital_id: string;
+  patient_id?: string;
+  campaign_id?: string;
+  call_session_id?: string;
+  question_count: number;
+  answered_question_count: number;
+  answers_json: Answer[];
+  metadata_json: any;
+  answered_at: string;
+  response_time_seconds?: number;
+  completion_rate: number;
+}
+```
+
+### **Response Validation Rules**
+- **Template Validation**: Template must exist and be published
+- **Question Count Match**: Must match template's question count
+- **Answer Sorting**: Answers must be sorted by `question_order`
+- **Question Validation**: All answered questions must exist in template
+- **Hospital Context**: Must have valid hospital JWT token
+- **Deduplication**: Identical responses are detected and skipped
+
+---
+
 ## 📊 **Analytics API**
 
 ### **Survey Analytics**
