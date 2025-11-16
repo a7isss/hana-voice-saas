@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import uuid
 
 from app.services import VoiceService
+from app.maqsam_handler import MaqsamProtocolHandler
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +36,7 @@ RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
 
 # Global voice service instance (loaded once on startup)
 voice_service = None
+maqsam_handler = None
 
 # Security state management
 active_sessions: Dict[str, Dict[str, Any]] = {}
@@ -44,11 +46,13 @@ security_bearer = HTTPBearer(auto_error=False)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load voice models on startup, clean up on shutdown"""
-    global voice_service
+    global voice_service, maqsam_handler
     try:
         logger.info("🚀 Starting Arabic Healthcare Voice Service...")
         voice_service = VoiceService()
+        maqsam_handler = MaqsamProtocolHandler(voice_service)
         logger.info("✅ Voice service ready!")
+        logger.info("✅ Maqsam protocol handler initialized!")
         yield
     except Exception as e:
         logger.error(f"❌ Failed to initialize voice service: {e}")
@@ -1021,6 +1025,12 @@ async def admin_health_check(credentials: HTTPAuthorizationCredentials = Depends
         return {"status": "error", "message": "Voice service not initialized"}
 
     health_status = voice_service.get_health_status()
+    
+    # Include Maqsam session info if available
+    maqsam_info = {}
+    if maqsam_handler:
+        maqsam_info = maqsam_handler.get_active_sessions()
+
     return {
         "status": health_status["status"],
         "voice_service": "loaded",
@@ -1029,11 +1039,259 @@ async def admin_health_check(credentials: HTTPAuthorizationCredentials = Depends
             "active_sessions": len([s for s in active_sessions.values() if s.get("active", False)]),
             "max_sessions": MAX_CONCURRENT_SESSIONS,
             "rate_limits": {ip: len(timestamps) for ip, timestamps in session_rate_limits.items()},
-            "total_requests_today": sum(len(timestamps) for timestamps in session_rate_limits.values())
+            "total_requests_today": sum(len(timestamps) for timestamps in session_rate_limits.values()),
+            "maqsam_sessions": maqsam_info.get("active_sessions", 0)
         },
+        "maqsam": maqsam_info,
         "timestamp": datetime.utcnow().isoformat(),
         "version": health_status["version"]
     }
+
+# =============================================================================
+# MAQSAM TELEPHONY ENDPOINTS - Full Protocol Implementation
+# =============================================================================
+
+def extract_maqsam_token(websocket: WebSocket) -> Optional[str]:
+    """
+    Extract Maqsam token from either:
+    1. HTTP Authorization header (preferred)
+    2. Query parameter (fallback)
+    """
+    # Check Authorization header first (Maqsam preferred method)
+    auth_header = websocket.headers.get("authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header[7:]  # Remove "Bearer " prefix
+    
+    # Check query parameter as fallback
+    query_params = dict(websocket.query_params)
+    return query_params.get("token")
+
+@app.websocket("/ws/maqsam")
+async def maqsam_websocket_endpoint(websocket: WebSocket):
+    """
+    Maqsam WebSocket endpoint with full protocol support
+    
+    URL: ws://your-server/ws/maqsam
+    Authentication: Bearer token in Authorization header OR token query parameter
+    
+    Protocol:
+    - session.setup → session.ready handshake
+    - audio.input (Base64 μ-law) → response.stream (Base64 μ-law)
+    - Full Maqsam message types support
+    """
+    # Extract token from header or query parameter
+    token = extract_maqsam_token(websocket)
+    
+    if not token:
+        logger.warning("❌ Maqsam authentication failed - no token provided")
+        await websocket.close(code=401, reason="Authentication required")
+        return
+    
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Maqsam authentication failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+    
+    # Use Maqsam protocol handler for full protocol support
+    if maqsam_handler:
+        await maqsam_handler.handle_maqsam_connection(websocket, token)
+    else:
+        logger.error("❌ Maqsam handler not available")
+        await websocket.close(code=503, reason="Service unavailable")
+
+@app.websocket("/ws/maqsam/healthcare")
+async def maqsam_healthcare_endpoint(websocket: WebSocket):
+    """
+    Maqsam healthcare questionnaire endpoint
+    
+    URL: ws://your-server/ws/maqsam/healthcare
+    Authentication: Bearer token in Authorization header OR token query parameter
+    
+    Features:
+    - Healthcare-specific conversation flow
+    - Symptom assessment
+    - Arabic healthcare terminology
+    - Structured patient data collection
+    """
+    # Extract token from header or query parameter
+    token = extract_maqsam_token(websocket)
+    
+    if not token:
+        logger.warning("❌ Maqsam healthcare authentication failed - no token provided")
+        await websocket.close(code=401, reason="Authentication required")
+        return
+    
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Maqsam healthcare authentication failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+    
+    # Use Maqsam protocol handler with healthcare agent
+    if maqsam_handler:
+        await maqsam_handler.handle_maqsam_connection(websocket, token, agent="healthcare")
+    else:
+        logger.error("❌ Maqsam handler not available")
+        await websocket.close(code=503, reason="Service unavailable")
+
+@app.websocket("/ws/maqsam/test")
+async def maqsam_test_endpoint(websocket: WebSocket):
+    """
+    Maqsam test endpoint for protocol validation
+    
+    URL: ws://your-server/ws/maqsam/test
+    Authentication: Bearer token in Authorization header OR token query parameter
+    
+    Used for:
+    - Protocol testing and validation
+    - Audio format verification
+    - Connection health checks
+    """
+    # Extract token from header or query parameter
+    token = extract_maqsam_token(websocket)
+    
+    if not token:
+        logger.warning("❌ Maqsam test authentication failed - no token provided")
+        await websocket.close(code=401, reason="Authentication required")
+        return
+    
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Maqsam test authentication failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+    
+    # Use Maqsam protocol handler with test agent
+    if maqsam_handler:
+        await maqsam_handler.handle_maqsam_connection(websocket, token, agent="test")
+    else:
+        logger.error("❌ Maqsam handler not available")
+        await websocket.close(code=503, reason="Service unavailable")
+
+@app.get("/maqsam/status")
+async def maqsam_status():
+    """Get Maqsam integration status and session information"""
+    if not maqsam_handler:
+        return {
+            "status": "error",
+            "message": "Maqsam handler not initialized",
+            "integration": "inactive"
+        }
+    
+    maqsam_info = maqsam_handler.get_active_sessions()
+    
+    return {
+        "status": "active",
+        "integration": "ready",
+        "protocol": "Maqsam WebSocket v1.0",
+        "endpoints": {
+            "primary": "/ws/maqsam",
+            "healthcare": "/ws/maqsam/healthcare", 
+            "test": "/ws/maqsam/test"
+        },
+        "authentication": {
+            "methods": ["HTTP Bearer Token", "Query Parameter"],
+            "status": "configured" if TELEPHONY_TOKEN else "not_configured"
+        },
+        "sessions": maqsam_info,
+        "audio_format": {
+            "input": "Base64 μ-law (8000 Hz, mono)",
+            "output": "Base64 μ-law (8000 Hz, mono)",
+            "processing": "WAV (16000 Hz, mono)"
+        }
+    }
+
+# =============================================================================
+# TELEPHONY TEST ENDPOINTS - Mirroring your existing working endpoints
+# =============================================================================
+
+@app.websocket("/ws/telephony/test")
+async def telephony_test_endpoint(websocket: WebSocket, token: str = None):
+    """
+    Telephony test endpoint that mirrors your existing working test endpoints
+    
+    URL: ws://your-server/ws/telephony/test?token=pre-shared-token
+    Same behavior as /ws/echo but with telephony authentication
+    """
+    # Verify telephony token
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Telephony test auth failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+
+    await websocket.accept()
+    session_id = f"telephony_test_{int(time.time())}_{id(websocket)}"
+    client_ip = websocket.client.host if websocket.client else "telephony"
+    logger.info(f"🧪 Telephony test session: {session_id} from {client_ip}")
+
+    try:
+        while True:
+            # Receive test audio
+            audio_data = await websocket.receive_bytes()
+            logger.info(f"{session_id}: Test audio received - {len(audio_data)} bytes")
+
+            if voice_service:
+                # Simple STT echo for testing
+                transcribed_text = voice_service.speech_to_text(audio_data)
+                
+                if transcribed_text and transcribed_text.strip():
+                    await websocket.send_text(f"test_result: {transcribed_text.strip()}")
+                    logger.info(f"{session_id}: Test STT result: '{transcribed_text.strip()}'")
+                else:
+                    await websocket.send_text("test_result: no_speech_detected")
+                    logger.info(f"{session_id}: Test STT result: no speech detected")
+            else:
+                await websocket.send_text("error: voice_service_unavailable")
+
+    except WebSocketDisconnect:
+        logger.info(f"🧪 Telephony test session {session_id} completed")
+
+    except Exception as e:
+        logger.error(f"❌ Telephony test session {session_id} error: {e}")
+
+@app.websocket("/ws/telephony/tts")
+async def telephony_tts_endpoint(websocket: WebSocket, token: str = None):
+    """
+    Telephony TTS endpoint that mirrors your existing working TTS endpoints
+    
+    URL: ws://your-server/ws/telephony/tts?token=pre-shared-token
+    Same behavior as /ws/tts but with telephony authentication
+    """
+    # Verify telephony token
+    if not verify_telephony_token(token):
+        logger.warning(f"❌ Telephony TTS auth failed from {websocket.client.host}")
+        await websocket.close(code=401, reason="Invalid token")
+        return
+
+    await websocket.accept()
+    session_id = f"telephony_tts_{int(time.time())}_{id(websocket)}"
+    client_ip = websocket.client.host if websocket.client else "telephony"
+    logger.info(f"🔊 Telephony TTS session: {session_id} from {client_ip}")
+
+    try:
+        while True:
+            # Receive text for TTS
+            text_message = await websocket.receive_text()
+            logger.info(f"{session_id}: TTS text received: '{text_message}'")
+
+            if voice_service:
+                # Generate TTS audio
+                audio_file_path = voice_service.text_to_speech(text_message)
+
+                if audio_file_path and os.path.exists(audio_file_path):
+                    with open(audio_file_path, "rb") as f:
+                        audio_bytes = f.read()
+                    await websocket.send_bytes(audio_bytes)
+                    logger.info(f"{session_id}: TTS audio sent - {len(audio_bytes)} bytes")
+                    os.remove(audio_file_path)
+                else:
+                    await websocket.send_text("error: tts_generation_failed")
+            else:
+                await websocket.send_text("error: voice_service_unavailable")
+
+    except WebSocketDisconnect:
+        logger.info(f"🔊 Telephony TTS session {session_id} completed")
+
+    except Exception as e:
+        logger.error(f"❌ Telephony TTS session {session_id} error: {e}")
 
 if __name__ == "__main__":
     import uvicorn

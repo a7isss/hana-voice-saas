@@ -63,6 +63,11 @@ const navItems: NavItem[] = [
     name: "Telephony Settings",
     path: "/telephony-settings",
   },
+  {
+    icon: <PlugInIcon />,
+    name: "Test Call Debugger",
+    path: "/test-call",
+  },
 ];
 
 const othersItems: NavItem[] = [
