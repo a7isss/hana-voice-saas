@@ -7,9 +7,12 @@ import logging
 import json
 import base64
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from fastapi import WebSocket, WebSocketDisconnect
 import os
+import httpx
+import jwt
+from datetime import datetime, timedelta
 from app.services import VoiceService
 
 logger = logging.getLogger(__name__)
@@ -27,6 +30,15 @@ class MaqsamProtocolHandler:
         self.AUDIO_FORMAT = "mulaw"
         self.SAMPLE_RATE = 8000
         self.CHANNELS = 1
+        
+        # API configuration for response submission
+        self.nextjs_api_url = os.getenv("NEXTJS_API_URL", "http://localhost:3000")
+        self.api_secret = os.getenv("VOICE_SERVICE_SECRET", "")
+        
+        # HTTP client for API calls
+        self.http_client = httpx.AsyncClient(timeout=30.0)
+        
+        logger.info(f"MaqsamProtocolHandler initialized with API URL: {self.nextjs_api_url}")
         
     async def handle_maqsam_connection(self, websocket: WebSocket, token: str, agent: str = None):
         """
@@ -479,3 +491,199 @@ class MaqsamProtocolHandler:
             "total_sessions": len(self.active_sessions),
             "sessions": self.active_sessions
         }
+    
+    def _normalize_arabic_response(
+        self, 
+        response_text: str, 
+        question_type: str = "yes_no"
+    ) -> Tuple[str, Optional[int]]:
+        """
+        Convert Arabic response to normalized text + numeric value
+        
+        Numeric Encoding:
+        - Yes (نعم) = 1
+        - No (لا) = 0
+        - Uncertain (غير متأكد) = 3
+        - Invalid/No response = None
+        
+        Returns: (normalized_text, numeric_value)
+        """
+        normalized = response_text.strip().lower()
+        
+        if question_type == "yes_no":
+            # Yes responses (1)
+            yes_patterns = ['نعم', 'اي', 'ايوه', 'yes', 'موافق', 'صحيح', 'اكيد', 'طبعا']
+            if any(pattern in normalized for pattern in yes_patterns):
+                return "نعم", 1
+            
+            # No responses (0)
+            no_patterns = ['لا', 'no', 'غير موافق', 'خطأ', 'ابدا', 'مستحيل']
+            if any(pattern in normalized for pattern in no_patterns):
+                return "لا", 0
+            
+            # Uncertain responses (3)
+            uncertain_patterns = ['غير متأكد', 'لا اعرف', 'uncertain', 'maybe', 'ربما', 'مش متأكد', 'مش عارف']
+            if any(pattern in normalized for pattern in uncertain_patterns):
+                return "غير متأكد", 3
+        
+        elif question_type == "rating":
+            # Rating scale 1-5
+            import re
+            numbers = re.findall(r'\d+', normalized)
+            if numbers:
+                rating = int(numbers[0])
+                if 1 <= rating <= 5:
+                    return str(rating), rating
+        
+        # Invalid/unclear response
+        logger.warning(f"Could not normalize response: '{response_text}'")
+        return response_text, None
+    
+    async def _track_survey_response(
+        self, 
+        session_id: str, 
+        session_context: Dict[str, Any],
+        response_text: str
+    ):
+        """
+        Track individual question responses during the call with numeric encoding
+        """
+        try:
+            # Get current question from context
+            current_question = session_context.get("current_question", {})
+            question_id = current_question.get("id")
+            question_order = current_question.get("order", 0)
+            question_type = current_question.get("type", "yes_no")
+            
+            if not question_id:
+                logger.warning(f"{session_id}: No current question to track response")
+                return
+            
+            # Initialize responses list if needed
+            if "collected_responses" not in session_context:
+                session_context["collected_responses"] = []
+            
+            # Calculate confidence score (from STT)
+            confidence = session_context.get("last_stt_confidence", 0.8)
+            
+            # Normalize response to get numeric value
+            normalized_text, numeric_value = self._normalize_arabic_response(
+                response_text, 
+                question_type
+            )
+            
+            # Record response with both text and numeric value
+            response_entry = {
+                "question_id": question_id,
+                "question_order": question_order,
+                "response_text": normalized_text,      # Normalized Arabic text
+                "response_value": numeric_value,       # Numeric: 1/0/3 or 1-5 for ratings
+                "confidence": confidence,
+                "response_time_seconds": time.time() - session_context.get("question_start_time", time.time()),
+                "timestamp": time.time()
+            }
+            
+            session_context["collected_responses"].append(response_entry)
+            
+            logger.info(f"{session_id}: Tracked response for Q{question_order}: "
+                       f"'{normalized_text}' (value: {numeric_value}, confidence: {confidence})")
+            
+        except Exception as e:
+            logger.error(f"{session_id}: Error tracking response: {e}")
+    
+    def _is_survey_complete(self, session_context: Dict[str, Any]) -> bool:
+        """
+        Check if all survey questions have been answered
+        """
+        total_questions = session_context.get("total_questions", 0)
+        collected_responses = session_context.get("collected_responses", [])
+        
+        return len(collected_responses) >= total_questions and total_questions > 0
+    
+    async def _submit_survey_responses(
+        self, 
+        session_id: str, 
+        session_context: Dict[str, Any]
+    ):
+        """
+        Submit collected survey responses to Next.js API
+        """
+        try:
+            # Extract data from session context
+            template_id = session_context.get("template_id")
+            patient_id = session_context.get("patient_id")
+            hospital_id = session_context.get("hospital_id")
+            collected_responses = session_context.get("collected_responses", [])
+            call_context = session_context.get("call_context", {})
+            
+            if not template_id or not hospital_id:
+                logger.error(f"{session_id}: Missing template_id or hospital_id for submission")
+                return
+            
+            # Sort responses by question_order
+            sorted_responses = sorted(collected_responses, key=lambda x: x["question_order"])
+            
+            # Prepare API request
+            payload = {
+                "template_id": template_id,
+                "question_count": session_context.get("total_questions", len(sorted_responses)),
+                "answers": sorted_responses,
+                "metadata": {
+                    "session_id": session_id,
+                    "patient_id": patient_id,
+                    "hospital_id": hospital_id,
+                    "campaign_id": session_context.get("campaign_id"),
+                    "call_duration_seconds": int(time.time() - session_context.get("call_start_time", time.time())),
+                    "voice_quality_score": session_context.get("voice_quality_score"),
+                    "call_context": call_context
+                }
+            }
+            
+            # Generate JWT token for API authentication
+            jwt_token = self._generate_service_jwt(hospital_id)
+            
+            # Submit to Next.js API
+            api_url = f"{self.nextjs_api_url}/api/responses/submit"
+            headers = {
+                "Authorization": f"Bearer {jwt_token}",
+                "Content-Type": "application/json"
+            }
+            
+            logger.info(f"{session_id}: Submitting {len(sorted_responses)} responses to {api_url}")
+            
+            response = await self.http_client.post(
+                api_url,
+                json=payload,
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"{session_id}: ✅ Survey responses submitted successfully! "
+                           f"Response ID: {result.get('response_id')}, "
+                           f"Completion rate: {result.get('completion_rate')}")
+                
+                # Mark as submitted in session
+                session_context["responses_submitted"] = True
+                session_context["submission_result"] = result
+            else:
+                logger.error(f"{session_id}: ❌ Failed to submit responses: {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            logger.error(f"{session_id}: Error submitting survey responses: {e}")
+    
+    def _generate_service_jwt(self, hospital_id: str) -> str:
+        """
+        Generate JWT token for service-to-service authentication
+        """
+        if not self.api_secret:
+            logger.warning("VOICE_SERVICE_SECRET not set, using empty secret (INSECURE!)")
+        
+        payload = {
+            "hospital_id": hospital_id,
+            "role": "voice_service",
+            "exp": datetime.utcnow() + timedelta(minutes=5),
+            "iat": datetime.utcnow()
+        }
+        
+        return jwt.encode(payload, self.api_secret, algorithm="HS256")

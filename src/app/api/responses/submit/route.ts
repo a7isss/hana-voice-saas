@@ -81,8 +81,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate JWT token has proper hospital context
-    const hospital_id = decoded.hospital_id;
-    if (decoded.role !== 'super_admin' && !hospital_id) {
+    const hospital_id = decoded.hospital_id || metadata.hospital_id;
+    
+    // Handle different token types
+    if (decoded.role === 'voice_service') {
+      // Voice service can submit on behalf of any hospital
+      // Validate the hospital_id exists in metadata
+      if (!metadata.hospital_id) {
+        return NextResponse.json(
+          { error: 'Voice service must provide hospital_id in metadata' },
+          { status: 400 }
+        );
+      }
+      
+      // Verify hospital exists
+      const { data: hospital, error: hospitalError } = await supabase
+        .from('hospitals')
+        .select('id')
+        .eq('id', metadata.hospital_id)
+        .single();
+        
+      if (hospitalError || !hospital) {
+        return NextResponse.json(
+          { error: 'Invalid hospital_id provided' },
+          { status: 400 }
+        );
+      }
+      
+      console.log(`Voice service submitting response for hospital: ${metadata.hospital_id}`);
+    } else if (decoded.role !== 'super_admin' && !hospital_id) {
       return NextResponse.json(
         { error: 'Invalid token: hospital context required' },
         { status: 401 }
@@ -90,7 +117,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Additional server-side validation
-    const validation = await validateTemplateResponse(body, hospital_id);
+    const final_hospital_id = metadata.hospital_id || hospital_id;
+    const validation = await validateTemplateResponse(body, final_hospital_id);
     if (!validation.valid) {
       return NextResponse.json(
         { error: validation.error },
@@ -99,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the aggregated response
-    const result = await saveTemplateResponse(body, hospital_id);
+    const result = await saveTemplateResponse(body, final_hospital_id);
 
     if (!result.success) {
       return NextResponse.json(
