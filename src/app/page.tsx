@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Zap, Globe, Brain, Activity, Shield } from 'lucide-react';
-import AIBrainCircuit from '@/components/common/AIBrainCircuit';
+import { ArrowRight, Sparkles, Brain, Activity, Shield } from 'lucide-react';
+import AlienRobot from '@/components/common/AlienRobot';
 
 export default function IntelligentMachinesLanding() {
   return (
@@ -19,11 +19,6 @@ export default function IntelligentMachinesLanding() {
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
         <div className="max-w-5xl text-center">
           
-          {/* AI Brain Circuit */}
-          <div className="mb-8 flex justify-center">
-            <AIBrainCircuit theme="blue" size={200} animationSpeed={0.8} />
-          </div>
-
           {/* Hero badge */}
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-400 backdrop-blur-sm">
             <Sparkles className="h-4 w-4" />
@@ -150,6 +145,11 @@ export default function IntelligentMachinesLanding() {
           </div>
 
         </div>
+      </div>
+
+      {/* Alien Robot in bottom-left corner */}
+      <div className="fixed bottom-8 left-8 z-20">
+        <AlienRobot />
       </div>
 
       {/* Footer */}
