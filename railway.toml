@@ -8,7 +8,7 @@ numReplicas = 1
 name = "hana-voice-saas"
 sourcePath = "."
 buildCommand = "npm install && npm run build"
-startCommand = "npm start"
+startCommand = "npm start -- -p $PORT"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 
