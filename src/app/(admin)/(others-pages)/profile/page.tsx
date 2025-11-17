@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     "This is Next.js Profile page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function Profile() {
   return (
     <div>

@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description:
     "This is Next.js Line Chart page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
 };
+
+export const dynamic = 'force-dynamic';
+
 export default function LineChart() {
   return (
     <div>

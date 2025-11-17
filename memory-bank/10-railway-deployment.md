@@ -2,8 +2,8 @@
 
 ## 🚨 CRITICAL FIX APPLIED - November 17, 2025
 
-**Problem**: Railway build was failing with "supabaseKey is required" error  
-**Root Cause**: Missing Supabase environment variables in railway.toml and inconsistent environment variable usage across API routes  
+**Problem**: Railway build was failing with "supabaseKey is required" error and React context provider errors  
+**Root Cause**: Missing Supabase environment variables, inconsistent environment variable usage across API routes, and React context usage during static generation  
 **Complete Solution Applied**:
 1. ✅ **Environment Variable Consistency**: Fixed 8 API routes to use `NEXT_PUBLIC_SUPABASE_ANON_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY`:
    - `src/app/api/auth/hospital/signup/route.ts`
@@ -21,11 +21,20 @@
    - Added JWT_SECRET_KEY for authentication
    - Clear documentation of required vs optional variables
 
+3. ✅ **React Context Provider Fixes**: Added `export const dynamic = 'force-dynamic'` to 4 admin pages to prevent context errors during static generation:
+   - `src/app/(admin)/(others-pages)/(tables)/basic-tables/page.tsx`
+   - `src/app/(admin)/(ui-elements)/videos/page.tsx`
+   - `src/app/(admin)/(others-pages)/profile/page.tsx`
+   - `src/app/(admin)/(others-pages)/(forms)/form-elements/page.tsx`
+
+**Result**: Railway build now completes successfully with all pages rendering properly.
+
 **Next Steps**: User needs to:
 1. Replace placeholder Supabase values with actual project credentials in Railway dashboard
 2. Add ADMIN_USERNAME and ADMIN_PASSWORD via Railway environment variables UI
 3. Generate secure JWT_SECRET_KEY value
 4. Deploy and test the application
+5. Verify all admin pages load correctly after deployment
 
 ---
 

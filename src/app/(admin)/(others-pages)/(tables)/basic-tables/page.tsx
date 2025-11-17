@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   // other metadata
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function BasicTables() {
   return (
     <div>
