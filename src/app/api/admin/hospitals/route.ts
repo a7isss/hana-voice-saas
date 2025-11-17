@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { verifyJWTToken, HospitalJWTPayload } from '@/lib/jwt';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 // GET: Get all hospitals (super admin only)
 export async function GET(request: NextRequest) {
