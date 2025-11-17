@@ -13,8 +13,9 @@ import { CallOrchestratorError } from '@/lib/types/campaign';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   const campaignId = params.id;
   
   console.log(`[CAMPAIGN] start: Starting campaign ${campaignId}`);
