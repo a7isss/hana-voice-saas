@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { verify } from 'jsonwebtoken';
 import crypto from 'crypto';
 
+// Force dynamic rendering to prevent build-time execution
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Types for the new template response system
 interface BackendResponse {
   template_id: string;
