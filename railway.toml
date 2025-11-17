@@ -14,10 +14,21 @@ healthcheckTimeout = 300
 
 [services.env]
 NODE_ENV = "production"
-NEXT_PUBLIC_API_URL = "https://hana-voice-saas.up.railway.app"
+
+# Supabase Configuration (REQUIRED - Add your actual values)
+NEXT_PUBLIC_SUPABASE_URL = "https://kycsfssbmeiwlxkaeyum.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5Y3Nmc3NibWVpd2x4a2FleXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNzE3MDksImV4cCI6MjA3ODk0NzcwOX0.LuhtKOxxb7A1EIV__T8ydHvWCdh4FF31V_pDS3CS3No"
+
+# Authentication & Security (REQUIRED - Generate secure values)
+JWT_SECRET_KEY = "generate_jwt_secret_here"
+
+# Voice Service Integration (OPTIONAL - Add your values if using voice features)
 VOICE_SERVICE_URL = "https://hana-voice-service.up.railway.app"
 VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
-ADMIN_USERNAME = "hana_admin_2024"
+
+# Admin Access (ADD VIA RAILWAY UI - Do not hardcode)
+# ADMIN_USERNAME = "your_admin_username"
+# ADMIN_PASSWORD = "your_secure_password"
 
 [[services]]
 name = "hana-voice-service"

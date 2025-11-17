@@ -33,16 +33,16 @@ interface Answer {
 
 // Environment validation
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const jwtSecret = process.env.JWT_SECRET_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey || !jwtSecret) {
+if (!supabaseUrl || !supabaseAnonKey || !jwtSecret) {
   console.error('Missing required environment variables for response submission');
   throw new Error('Missing required environment variables');
 }
 
 // Create service role client for backend operations
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Guaranteed to be defined after the check above
 const SECRET_KEY = jwtSecret;

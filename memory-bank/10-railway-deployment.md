@@ -1,5 +1,34 @@
 # Railway Migration Guide
 
+## 🚨 CRITICAL FIX APPLIED - November 17, 2025
+
+**Problem**: Railway build was failing with "supabaseKey is required" error  
+**Root Cause**: Missing Supabase environment variables in railway.toml and inconsistent environment variable usage across API routes  
+**Complete Solution Applied**:
+1. ✅ **Environment Variable Consistency**: Fixed 8 API routes to use `NEXT_PUBLIC_SUPABASE_ANON_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY`:
+   - `src/app/api/auth/hospital/signup/route.ts`
+   - `src/app/api/responses/submit/route.ts`
+   - `src/app/api/telephony-settings/route.ts`
+   - `src/app/api/hospital/patients/route.ts`
+   - `src/app/api/hospital/dashboard/route.ts`
+   - `src/app/api/hospital/campaigns/route.ts`
+   - `src/app/api/hospital/appointments/route.ts`
+   - `src/app/api/auth/hospital/login/route.ts`
+
+2. ✅ **Railway Configuration**: Updated `railway.toml` with:
+   - Missing Supabase variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+   - Removed hardcoded admin credentials (now add via Railway UI)
+   - Added JWT_SECRET_KEY for authentication
+   - Clear documentation of required vs optional variables
+
+**Next Steps**: User needs to:
+1. Replace placeholder Supabase values with actual project credentials in Railway dashboard
+2. Add ADMIN_USERNAME and ADMIN_PASSWORD via Railway environment variables UI
+3. Generate secure JWT_SECRET_KEY value
+4. Deploy and test the application
+
+---
+
 This guide will help you migrate your voice app from Render to Railway.
 
 ## Why Railway is Better for Your Voice App
