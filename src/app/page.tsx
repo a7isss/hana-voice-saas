@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import AIBrainCircuit from '@/components/common/AIBrainCircuit';
 
 export default function IntelligentMachinesLandingPage() {
   const [activeFeature, setActiveFeature] = useState(0);
@@ -49,10 +50,7 @@ export default function IntelligentMachinesLandingPage() {
           <div className="text-center mb-16 animate-fade-in">
             <div className="inline-flex items-center justify-center mb-8">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold shadow-2xl">
-                  🤖
-                </div>
+                <AIBrainCircuit theme="blue" size={300} animationSpeed={0.8} />
               </div>
             </div>
             
