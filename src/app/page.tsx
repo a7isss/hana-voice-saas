@@ -1,185 +1,147 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { ArrowRight, Sparkles, Zap, Globe, Brain, Activity, Shield } from 'lucide-react';
 import AIBrainCircuit from '@/components/common/AIBrainCircuit';
 
-export default function IntelligentMachinesLandingPage() {
-  const [activeFeature, setActiveFeature] = useState(0);
-
-  const features = [
-    {
-      icon: '🤖',
-      title: 'ذكاء اصطناعي متقدم',
-      description: 'تقنية التعلم العميق للتعرف على اللغة العربية بدقة 98%',
-      detail: 'نستخدم أحدث نماذج الذكاء الاصطناعي المدربة خصيصاً على اللهجات العربية المختلفة'
-    },
-    {
-      icon: '🎯',
-      title: 'تخصيص ذكي',
-      description: 'تكيف تلقائي مع احتياجات كل مريض',
-      detail: 'النظام يتعلم من كل محادثة ليقدم تجربة أكثر تخصيصاً وفعالية'
-    },
-    {
-      icon: '⚡',
-      title: 'استجابة فورية',
-      description: 'معالجة صوتية في الوقت الفعلي',
-      detail: 'تحليل وفهم الكلام في أقل من 4 ثوان مع ردود طبيعية ومريحة'
-    },
-    {
-      icon: '🔒',
-      title: 'أمان متقدم',
-      description: 'حماية البيانات الطبية بأعلى المعايير',
-      detail: 'معالجة آمنة متوافقة مع HIPAA دون تخزين دائم للبيانات الصوتية'
-    }
-  ];
-
+export default function IntelligentMachinesLanding() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+    <div className="min-h-screen bg-gray-950 relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-blue-950/50 to-indigo-950/50" />
+      
+      {/* Floating orbs in background */}
+      <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-32 right-20 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 right-1/4 w-24 h-24 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }} />
 
-      {/* Hero Section */}
-      <div className="relative flex flex-col items-center justify-center min-h-screen px-4 py-16">
-        <div className="max-w-6xl w-full">
+      {/* Main content */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
+        <div className="max-w-5xl text-center">
           
-          {/* Brand Header */}
-          <div className="text-center mb-16 animate-fade-in">
-            <div className="inline-flex items-center justify-center mb-8">
-              <div className="relative">
-                <AIBrainCircuit theme="blue" size={300} animationSpeed={0.8} />
-              </div>
-            </div>
-            
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-200 via-white to-indigo-200 bg-clip-text text-transparent leading-tight">
+          {/* AI Brain Circuit */}
+          <div className="mb-8 flex justify-center">
+            <AIBrainCircuit theme="blue" size={200} animationSpeed={0.8} />
+          </div>
+
+          {/* Hero badge */}
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-400 backdrop-blur-sm">
+            <Sparkles className="h-4 w-4" />
+            <span>مدعوم بالذكاء الاصطناعي المتقدم</span>
+          </div>
+
+          {/* Main heading */}
+          <h1 className="mb-6 text-6xl font-bold tracking-tight md:text-7xl lg:text-8xl">
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
               الآلات الذكية
-            </h1>
-            <p className="text-2xl md:text-3xl text-blue-200 mb-6 font-light">
-              Intelligent Machines
-            </p>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              حيث يلتقي الذكاء الاصطناعي بالرعاية الصحية
-              <br />
-              <span className="text-blue-300">منصة التواصل الصوتي الذكي للمؤسسات الطبية</span>
-            </p>
+            </span>
+            <br />
+            <span className="text-white">Intelligent Machines</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="mb-12 text-xl text-gray-300 md:text-2xl max-w-3xl mx-auto">
+            حيث يلتقي الذكاء الاصطناعي بالرعاية الصحية
+            <br />
+            <span className="text-blue-400">منصة التواصل الصوتي الذكي للمؤسسات الطبية</span>
+          </p>
+
+          {/* CTA buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <Link
+              href="/auth/hospital/signup"
+              className="group relative overflow-hidden bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/50 hover:scale-105"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                إنشاء حساب مؤسسة
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
+            
+            <Link
+              href="/auth/hospital/login"
+              className="border border-blue-500/30 text-white hover:bg-blue-500/10 px-8 py-4 text-lg rounded-xl backdrop-blur-sm transition-all duration-200 hover:border-blue-500/50"
+            >
+              تسجيل الدخول
+            </Link>
           </div>
 
-          {/* Vision Statement */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 md:p-12 mb-16 border border-white/10 shadow-2xl">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4 text-blue-200">رؤيتنا</h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mx-auto rounded-full"></div>
-            </div>
-            <p className="text-lg text-gray-200 leading-relaxed text-center max-w-4xl mx-auto">
-              نؤمن بأن <span className="text-blue-300 font-semibold">الآلات الذكية</span> ليست مجرد أدوات تقنية، 
-              بل شركاء في تحسين جودة الرعاية الصحية. من خلال الجمع بين 
-              <span className="text-indigo-300 font-semibold"> الذكاء الاصطناعي المتقدم</span> و
-              <span className="text-blue-300 font-semibold"> الفهم العميق للغة العربية</span>، 
-              نمكّن المؤسسات الطبية من التواصل مع مرضاها بطريقة أكثر إنسانية وفعالية، 
-              على مدار الساعة، دون حدود.
-            </p>
-          </div>
-
-          {/* Interactive Features Grid */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold text-center mb-12 text-blue-200">
-              قوة الذكاء الاصطناعي في خدمتك
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <div
-                  key={index}
-                  onMouseEnter={() => setActiveFeature(index)}
-                  className={`bg-white/5 backdrop-blur-lg rounded-xl p-6 border transition-all duration-300 cursor-pointer ${
-                    activeFeature === index
-                      ? 'border-blue-400 shadow-2xl shadow-blue-500/20 scale-105'
-                      : 'border-white/10 hover:border-white/20'
-                  }`}
-                >
-                  <div className="text-4xl mb-4">{feature.icon}</div>
-                  <h3 className="text-xl font-semibold mb-2 text-blue-200">{feature.title}</h3>
-                  <p className="text-sm text-gray-300 mb-3">{feature.description}</p>
-                  <p className={`text-xs text-gray-400 transition-opacity duration-300 ${
-                    activeFeature === index ? 'opacity-100' : 'opacity-0'
-                  }`}>
-                    {feature.detail}
-                  </p>
+          {/* Feature cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { 
+                icon: Brain, 
+                title: "ذكاء اصطناعي متقدم", 
+                desc: "دقة 98% في التعرف على اللغة العربية",
+                color: "blue"
+              },
+              { 
+                icon: Activity, 
+                title: "معالجة فورية", 
+                desc: "استجابة في الوقت الفعلي على مدار الساعة",
+                color: "cyan"
+              },
+              { 
+                icon: Shield, 
+                title: "أمان متقدم", 
+                desc: "حماية البيانات الطبية بأعلى المعايير",
+                color: "indigo"
+              },
+            ].map((feature, idx) => (
+              <div
+                key={idx}
+                className="group relative rounded-2xl border border-gray-800 bg-gray-900/50 p-6 backdrop-blur-sm transition-all hover:border-blue-500/40 hover:bg-gray-900/80 hover:scale-105"
+              >
+                <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-${feature.color}-500/10 text-${feature.color}-400`}>
+                  <feature.icon className="h-6 w-6" />
                 </div>
-              ))}
-            </div>
+                <h3 className="mb-2 text-lg font-semibold text-white">{feature.title}</h3>
+                <p className="text-sm text-gray-400">{feature.desc}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Key Benefits */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-lg rounded-xl p-6 border border-blue-400/30">
-              <div className="text-3xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold mb-3 text-blue-200">تحليلات ذكية</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                تحويل المحادثات الصوتية إلى بيانات قابلة للتحليل مع رؤى فورية عن رضا المرضى واحتياجاتهم
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 backdrop-blur-lg rounded-xl p-6 border border-indigo-400/30">
-              <div className="text-3xl mb-4">🌍</div>
-              <h3 className="text-xl font-semibold mb-3 text-indigo-200">تغطية شاملة</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                الوصول إلى آلاف المرضى في وقت واحد، مع تخصيص كل محادثة حسب الحالة الفردية
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-lg rounded-xl p-6 border border-purple-400/30">
-              <div className="text-3xl mb-4">💡</div>
-              <h3 className="text-xl font-semibold mb-3 text-purple-200">تعلم مستمر</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                النظام يتحسن تلقائياً مع كل محادثة، ليقدم تجربة أفضل وأكثر دقة بمرور الوقت
-              </p>
-            </div>
-          </div>
-
-          {/* Use Cases */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 md:p-12 mb-16 border border-white/10">
-            <h2 className="text-3xl font-bold text-center mb-8 text-blue-200">
+          {/* Use Cases Section */}
+          <div className="mt-20 rounded-2xl border border-gray-800 bg-gray-900/50 p-8 md:p-12 backdrop-blur-sm">
+            <h2 className="text-3xl font-bold text-white mb-8">
               كيف تخدم الآلات الذكية مؤسستك؟
             </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="flex items-start space-x-4 space-x-reverse">
+            <div className="grid md:grid-cols-2 gap-6 text-left">
+              <div className="flex items-start gap-4">
                 <div className="text-2xl">🏥</div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2 text-blue-200">متابعة ما بعد العمليات</h4>
-                  <p className="text-gray-300 text-sm">
+                  <h4 className="font-semibold text-lg mb-2 text-blue-400">متابعة ما بعد العمليات</h4>
+                  <p className="text-gray-400 text-sm">
                     اتصال تلقائي بالمرضى للاطمئنان على حالتهم وجمع معلومات عن التعافي
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-4 space-x-reverse">
+              <div className="flex items-start gap-4">
                 <div className="text-2xl">💊</div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2 text-blue-200">تذكير بالأدوية</h4>
-                  <p className="text-gray-300 text-sm">
+                  <h4 className="font-semibold text-lg mb-2 text-cyan-400">تذكير بالأدوية</h4>
+                  <p className="text-gray-400 text-sm">
                     مكالمات صوتية ذكية لتذكير المرضى بمواعيد الأدوية والجرعات
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-4 space-x-reverse">
+              <div className="flex items-start gap-4">
                 <div className="text-2xl">📅</div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2 text-blue-200">تأكيد المواعيد</h4>
-                  <p className="text-gray-300 text-sm">
+                  <h4 className="font-semibold text-lg mb-2 text-indigo-400">تأكيد المواعيد</h4>
+                  <p className="text-gray-400 text-sm">
                     تأكيد تلقائي للمواعيد الطبية وإعادة الجدولة عند الحاجة
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-4 space-x-reverse">
+              <div className="flex items-start gap-4">
                 <div className="text-2xl">📋</div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2 text-blue-200">استطلاعات الرضا</h4>
-                  <p className="text-gray-300 text-sm">
+                  <h4 className="font-semibold text-lg mb-2 text-purple-400">استطلاعات الرضا</h4>
+                  <p className="text-gray-400 text-sm">
                     جمع آراء المرضى بطريقة طبيعية ومريحة عبر المحادثات الصوتية
                   </p>
                 </div>
@@ -187,54 +149,21 @@ export default function IntelligentMachinesLandingPage() {
             </div>
           </div>
 
-          {/* CTA Section */}
-          <div className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 backdrop-blur-lg rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-400/30">
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">🏥</div>
-              <h3 className="text-3xl font-bold mb-4 text-white">
-                ابدأ رحلتك مع الآلات الذكية
-              </h3>
-              <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-                انضم إلى المؤسسات الطبية الرائدة التي تستخدم الذكاء الاصطناعي 
-                لتحسين التواصل مع مرضاها وتقديم رعاية أفضل
-              </p>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
-              <Link
-                href="/auth/hospital/login"
-                className="inline-block bg-white text-blue-900 px-8 py-4 rounded-xl hover:bg-blue-50 transition-all duration-200 text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                تسجيل دخول المؤسسة
-              </Link>
-              <Link
-                href="/auth/hospital/signup"
-                className="inline-block bg-blue-500/20 text-white border-2 border-white/30 px-8 py-4 rounded-xl hover:bg-blue-500/30 transition-all duration-200 text-lg font-semibold hover:scale-105"
-              >
-                إنشاء حساب جديد
-              </Link>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-white/20 text-center">
-              <p className="text-sm text-blue-200">
-                جديد على المنصة؟ نقدم <span className="font-semibold">تجربة مجانية</span> لمدة 30 يوماً
-              </p>
-            </div>
-          </div>
-
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="mt-20 border-t border-white/10 pt-12 w-full max-w-6xl mx-auto">
+      {/* Footer */}
+      <div className="relative z-10 border-t border-gray-800 mt-20">
+        <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h4 className="font-semibold text-lg mb-4 text-blue-200">الآلات الذكية</h4>
+              <h4 className="font-semibold text-lg mb-4 text-blue-400">الآلات الذكية</h4>
               <p className="text-sm text-gray-400 leading-relaxed">
                 منصة التواصل الصوتي الذكي المدعومة بالذكاء الاصطناعي للمؤسسات الطبية في المنطقة العربية
               </p>
             </div>
             <div>
-              <h4 className="font-semibold text-lg mb-4 text-blue-200">تواصل معنا</h4>
+              <h4 className="font-semibold text-lg mb-4 text-cyan-400">تواصل معنا</h4>
               <div className="space-y-2 text-sm text-gray-400">
                 <p>📧 support@intelligentmachines.sa</p>
                 <p>📞 +966 XX XXX XXXX</p>
@@ -242,7 +171,7 @@ export default function IntelligentMachinesLandingPage() {
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-lg mb-4 text-blue-200">التقنية</h4>
+              <h4 className="font-semibold text-lg mb-4 text-indigo-400">التقنية</h4>
               <div className="space-y-2 text-sm text-gray-400">
                 <p>✓ ذكاء اصطناعي متقدم</p>
                 <p>✓ معالجة اللغة العربية</p>
@@ -251,7 +180,7 @@ export default function IntelligentMachinesLandingPage() {
             </div>
           </div>
           
-          <div className="text-center pt-8 border-t border-white/10">
+          <div className="text-center pt-8 border-t border-gray-800">
             <p className="text-sm text-gray-400 mb-2">
               © 2025 الآلات الذكية - Intelligent Machines. جميع الحقوق محفوظة
             </p>
