@@ -36,6 +36,13 @@ else
 fi
 
 echo
+echo "Setting up voice models..."
+echo "This will copy local models or download them if needed"
+
+# Run the smart voice model setup script
+python setup_voice_models.py
+
+echo
 echo "Build completed successfully!"
 echo "Ready for Railway deployment"
 echo "==========================================="
