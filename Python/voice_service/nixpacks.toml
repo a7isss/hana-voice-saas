@@ -3,15 +3,12 @@ nixPkgs = ['python311', 'python311Packages.uv']
 
 [phases.install]
 cmds = [
-  'uv venv',
-  'source .venv/bin/activate',
-  'uv sync --frozen --no-dev'
+  'uv venv && source .venv/bin/activate && uv sync --frozen --no-dev'
 ]
 
 [phases.build]
 cmds = [
-  'source .venv/bin/activate',
-  'echo "Python service ready for deployment"'
+  'source .venv/bin/activate && echo "Python voice service build completed"'
 ]
 
 [phases.start]
