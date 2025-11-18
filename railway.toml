@@ -33,8 +33,8 @@ VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
 [[services]]
 name = "hana-voice-service"
 sourcePath = "Python/voice_service"
-buildCommand = "poetry install --no-dev"
-startCommand = "poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+buildCommand = "uv sync --frozen --no-dev"
+startCommand = "uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 
@@ -44,7 +44,17 @@ LOG_LEVEL = "INFO"
 MAX_CONCURRENT_SESSIONS = "10"
 RATE_LIMIT_PER_MINUTE = "60"
 
-# Note: For persistent storage (voice models), you'll need to:
+# Voice Model Configuration
+VOSK_MODEL_PATH = "models/vosk-model-ar-0.22-linto-1.1.0"
+TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
+SAMPLE_RATE = "16000"
+AUDIO_FORMAT = "wav"
+
+# Performance Configuration
+PROCESSING_TIMEOUT = "30"
+SKIP_MODEL_LOADING = "false"
+
+# For persistent storage (voice models), you'll need to:
 # 1. Use Railway's Volume service for persistent storage
 # 2. Mount the volume to /data/models in the Python service
 # 3. Configure the volume in Railway dashboard

@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Brain, Activity, Shield } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Activity, Shield, MessageCircle } from 'lucide-react';
 import AlienRobot from '@/components/common/AlienRobot';
 import HaloPageLight from '@/components/ui/HaloPageLight';
 
 export default function IntelligentMachinesLanding() {
+  const whatsappUrl = `https://wa.me/966550323049?text=مرحباً، أريد الاستفسار عن خدمات الآلات الذكية للمؤسسات الطبية`;
+
   return (
     <>
-      <HaloPageLight radius={200} intensity={1.3} />
+      <HaloPageLight radius={200} intensity={0.39} />
       <div className="min-h-screen bg-gray-950 relative overflow-hidden">
         {/* Animated gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-blue-950/50 to-indigo-950/50" />
@@ -46,15 +48,17 @@ export default function IntelligentMachinesLanding() {
 
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <Link
-                href="/auth/hospital/signup"
-                className="group relative overflow-hidden bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/50 hover:scale-105"
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative overflow-hidden bg-green-600 text-white hover:bg-green-700 px-8 py-4 text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-green-500/50 hover:scale-105"
               >
                 <span className="relative z-10 flex items-center gap-2">
-                  إنشاء حساب مؤسسة
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  تواصل معنا عبر الواتساب
+                  <MessageCircle className="h-5 w-5 transition-transform group-hover:scale-110" />
                 </span>
-              </Link>
+              </a>
               
               <Link
                 href="/auth/hospital/login"
@@ -169,7 +173,7 @@ export default function IntelligentMachinesLanding() {
                 <h4 className="font-semibold text-lg mb-4 text-cyan-400">تواصل معنا</h4>
                 <div className="space-y-2 text-sm text-gray-400">
                   <p>📧 support@intelligentmachines.sa</p>
-                  <p>📞 +966 XX XXX XXXX</p>
+                  <p>📱 +966 55 032 3049</p>
                   <p>🌐 www.intelligentmachines.sa</p>
                 </div>
               </div>

@@ -43,7 +43,7 @@ export const AlienRobot = () => {
   }, []);
 
   return (
-    <div ref={robotRef} className="relative w-64 h-80">
+    <div ref={robotRef} className="relative w-32 h-40 sm:w-48 sm:h-60 md:w-64 md:h-80">
       <svg
         viewBox="0 0 200 250"
         className="w-full h-full drop-shadow-2xl"
