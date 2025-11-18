@@ -456,7 +456,7 @@ export default function SurveyManagementPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {surveyQuestions.map((question, index) => (
+                {surveyQuestions.map((question) => (
                   <div key={question.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">

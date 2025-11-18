@@ -41,8 +41,7 @@ export interface VoiceTemplateUpload {
 export async function uploadAudioFile(
   bucketName: string,
   filePath: string,
-  audioBlob: Blob,
-  metadata?: Partial<AudioFileMetadata>
+  audioBlob: Blob
 ): Promise<StorageResult> {
   try {
     // Upload file to storage
@@ -169,7 +168,7 @@ export async function uploadVoiceTemplate(uploadData: VoiceTemplateUpload): Prom
 
   const filePath = `surveys/${surveyId}/${fileName}`;
 
-  return await uploadAudioFile('survey-audio', filePath, audioBlob, metadata);
+  return await uploadAudioFile('survey-audio', filePath, audioBlob);
 }
 
 /**

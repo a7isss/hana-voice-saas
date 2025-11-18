@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Button from '@/components/ui/button/Button';
-import Input from '@/components/form/input/InputField';
 import Select from '@/components/form/Select';
 
 interface Survey {
@@ -184,7 +183,7 @@ export default function CampaignPage() {
     setCurrentCall('');
   };
 
-  const simulateSurveyCall = async (callResult: CampaignResult, index: number) => {
+  const simulateSurveyCall = async (callResult: CampaignResult, _: number) => {
     try {
       // Simulate call connection delay
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
@@ -219,7 +218,7 @@ export default function CampaignPage() {
         callResult.completed_at = new Date().toISOString();
         callResult.failure_reason = Math.random() > 0.5 ? 'no_answer' : 'busy_signal';
       }
-    } catch (error) {
+    } catch {
       callResult.status = 'failed';
       callResult.failure_reason = 'technical_error';
       callResult.completed_at = new Date().toISOString();

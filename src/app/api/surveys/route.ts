@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-interface Survey {
-  id: string;
-  name: string;
-  description?: string;
-  hospital_id: string;
-  department_id?: string;
-  created_by?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 interface SurveyQuestion {
   id: string;
   survey_id: string;

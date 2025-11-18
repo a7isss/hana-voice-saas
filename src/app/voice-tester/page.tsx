@@ -35,7 +35,7 @@ export default function VoiceTesterPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [callState, setCallState] = useState<CallState>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [lastTranscription, setLastTranscription] = useState<string>('');
+  // const [lastTranscription, setLastTranscription] = useState<string>('');
 
   // Agent Configuration Script Testing
   const [scriptSets, setScriptSets] = useState<ScriptSet[]>([]);
@@ -44,7 +44,7 @@ export default function VoiceTesterPage() {
   const [scriptPlaybackState, setScriptPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle');
 
   // TTS Request Management
-  const [ttsQueue, setTtsQueue] = useState<Array<{id: string, text: string, resolve: Function, reject: Function}>>([]);
+  const [ttsQueue, setTtsQueue] = useState<Array<{id: string, text: string, resolve: () => void, reject: (error: Error) => void}>>([]);
   const [currentTtsRequest, setCurrentTtsRequest] = useState<string | null>(null);
   const [ttsStatus, setTtsStatus] = useState<'idle' | 'processing' | 'error'>('idle');
 
@@ -240,7 +240,6 @@ export default function VoiceTesterPage() {
             // This is the STT transcription result
             const transcribedText = event.data.replace('transcription: ', '');
             console.log('STT Result:', transcribedText);
-            setLastTranscription(transcribedText);
             // Show the user's transcribed text
             addMessage('أنت', transcribedText, 'user');
             // Reset call state to allow next conversation
@@ -336,7 +335,7 @@ export default function VoiceTesterPage() {
               setTtsQueue(prev => {
                 const request = prev.find(req => req.id === requestId);
                 if (request) {
-                  request.reject(error);
+                  request.reject(error instanceof Error ? error : new Error(String(error)));
                 }
                 return prev.filter(req => req.id !== requestId);
               });
