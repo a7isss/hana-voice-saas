@@ -26,7 +26,7 @@
 
 ### **Immediate Next Steps (Critical Priority Order)**
 1. **🔴 IMMEDIATE: Add TELEPHONY_TOKEN** to `.env` file (Maqsam authentication blocker)
-2. **🟡 Clean up API namespace conflict**: Rename `/api/telephony/` to `/api/legacy-telephony/`
+2. **✅ COMPLETED: API namespace cleanup**: Consolidated Maqsam under `/api/telephony/`
 3. **🟢 Documentation Update**: Memory bank reflects current system status (85% solid)
 4. **🟢 Environment Cleanup**: Remove deprecated FreePBX variables from `.env`
 

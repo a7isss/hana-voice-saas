@@ -37,7 +37,7 @@ export default function TelephonySettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/telephony-settings');
+      const response = await fetch('/api/telephony');
       const data = await response.json();
       if (data.settings) {
         setSettings(data.settings);
@@ -53,7 +53,7 @@ export default function TelephonySettingsPage() {
 
     try {
       const method = settings.id ? 'PUT' : 'POST';
-      const url = settings.id ? '/api/telephony-settings' : '/api/telephony-settings';
+      const url = '/api/telephony';
       
       const response = await fetch(url, {
         method,

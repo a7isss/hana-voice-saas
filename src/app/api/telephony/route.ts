@@ -1,180 +1,111 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// Telephony service configuration
-const TELEPHONY_SERVICE_URL = process.env.TELEPHONY_SERVICE_URL || 'http://localhost:8001';
-const FREEPBX_HOST = process.env.FREEPBX_HOST;
-const FREEPBX_USERNAME = process.env.FREEPBX_USERNAME;
-const FREEPBX_PASSWORD = process.env.FREEPBX_PASSWORD;
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function GET(request: NextRequest) {
+// Maqsam telephony settings interface
+interface TelephonySettings {
+  id?: string;
+  provider: 'maqsam';
+  auth_method: 'http_header' | 'websocket_token';
+  auth_token: string;
+  base_url: string;
+  webhook_url: string;
+  allowed_agents: string[];
+  is_active: boolean;
+  test_mode: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    const action = url.searchParams.get('action');
+    const { data, error } = await supabase
+      .from('telephony_settings')
+      .select('*')
+      .eq('is_active', true)
+      .single();
 
-    if (action === 'health') {
-      // Check telephony service health
-      const healthStatus = {
-        status: 'healthy' as const,
-        service: 'telephony-api-proxy',
-        telephony_service: {
-          configured: !!(FREEPBX_HOST && FREEPBX_USERNAME && FREEPBX_PASSWORD),
-          host: FREEPBX_HOST || 'not configured'
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      return NextResponse.json(healthStatus);
+    if (error && error.code !== 'PGRST116') {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({
-      status: 'healthy',
-      service: 'telephony-api-proxy',
-      message: 'Telephony API proxy is running',
-      telephony_service_url: TELEPHONY_SERVICE_URL,
-      timestamp: new Date().toISOString()
-    });
+    return NextResponse.json({ settings: data || null });
   } catch (error) {
-    console.error('Telephony API GET error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process telephony API request' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch telephony settings' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { action } = body;
+    const settings: TelephonySettings = await request.json();
 
-    switch (action) {
-      case 'initiate-call':
-        return await initiateCall(body);
-
-      case 'check-call-status':
-        return await checkCallStatus(body);
-
-      case 'end-call':
-        return await endCall(body);
-
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        );
+    // Validate required fields
+    if (!settings.provider || !settings.auth_method || !settings.auth_token || !settings.base_url) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Deactivate any existing active settings
+    if (settings.is_active) {
+      await supabase
+        .from('telephony_settings')
+        .update({ is_active: false })
+        .eq('is_active', true);
+    }
+
+    // Insert new settings
+    const { data, error } = await supabase
+      .from('telephony_settings')
+      .insert([{
+        ...settings,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ settings: data });
   } catch (error) {
-    console.error('Telephony API POST error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process telephony API request' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save telephony settings' }, { status: 500 });
   }
 }
 
-async function initiateCall(body: {
-  phoneNumber: string;
-  clientId: string;
-  audioUrl?: string;
-  surveyId?: string;
-  language?: string;
-}) {
+export async function PUT(request: NextRequest) {
   try {
-    const {
-      phoneNumber,
-      clientId
-    } = body;
+    const settings: Partial<TelephonySettings> & { id: string } = await request.json();
 
-    // Validate required parameters
-    if (!phoneNumber || !clientId) {
-      return NextResponse.json(
-        { error: 'Phone number and client ID are required' },
-        { status: 400 }
-      );
+    // Deactivate any existing active settings if this one is being activated
+    if (settings.is_active) {
+      await supabase
+        .from('telephony_settings')
+        .update({ is_active: false })
+        .neq('id', settings.id)
+        .eq('is_active', true);
     }
 
-    // For now, return a mock response since the actual telephony integration
-    // would require FreePBX or similar telephony service setup
-    const mockCallId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const { data, error } = await supabase
+      .from('telephony_settings')
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', settings.id)
+      .select()
+      .single();
 
-    return NextResponse.json({
-      success: true,
-      callId: mockCallId,
-      phoneNumber,
-      clientId,
-      status: 'initiated',
-      message: 'Call initiated successfully (mock response)',
-      estimatedDuration: '2-3 minutes',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error initiating call:', error);
-    return NextResponse.json(
-      { error: 'Failed to initiate call' },
-      { status: 500 }
-    );
-  }
-}
-
-async function checkCallStatus(body: {
-  callId: string;
-}) {
-  try {
-    const { callId } = body;
-
-    if (!callId) {
-      return NextResponse.json(
-        { error: 'Call ID is required' },
-        { status: 400 }
-      );
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Mock call status - in real implementation, this would check with FreePBX
-    const mockStatuses = ['ringing', 'answered', 'completed', 'failed', 'busy'];
-    const mockStatus = mockStatuses[Math.floor(Math.random() * mockStatuses.length)];
-
-    return NextResponse.json({
-      success: true,
-      callId,
-      status: mockStatus,
-      duration: Math.floor(Math.random() * 180) + 30, // 30-210 seconds
-      message: `Call status: ${mockStatus}`,
-      timestamp: new Date().toISOString()
-    });
+    return NextResponse.json({ settings: data });
   } catch (error) {
-    console.error('Error checking call status:', error);
-    return NextResponse.json(
-      { error: 'Failed to check call status' },
-      { status: 500 }
-    );
-  }
-}
-
-async function endCall(body: {
-  callId: string;
-}) {
-  try {
-    const { callId } = body;
-
-    if (!callId) {
-      return NextResponse.json(
-        { error: 'Call ID is required' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      callId,
-      status: 'ended',
-      message: 'Call ended successfully',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error ending call:', error);
-    return NextResponse.json(
-      { error: 'Failed to end call' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update telephony settings' }, { status: 500 });
   }
 }
