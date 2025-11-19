@@ -33,8 +33,6 @@ VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
 [[services]]
 name = "hana-voice-service"
 sourcePath = "Python/voice_service"
-buildCommand = "pip install -r requirements.txt"
-startCommand = "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 

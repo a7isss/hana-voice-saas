@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ['python312', 'python312Packages.pip', 'curl']
+
+[phases.install]
+cmds = [
+    'curl -LsSf https://astral.sh/uv/install.sh | sh',
+    'source $HOME/.cargo/env',
+    'export PATH="$HOME/.cargo/bin:$PATH"',
+    'uv --version'
+]
+
+[phases.build]
+cmds = [
+    'source $HOME/.cargo/env', 
+    'export PATH="$HOME/.cargo/bin:$PATH"',
+    'uv sync --frozen --no-dev'
+]
+
+[phases.start]
+cmd = 'uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT'
