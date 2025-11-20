@@ -27,8 +27,7 @@ RUN pip install uv && uv pip install --system --no-cache-dir -e .
 
 # Copy remaining application code (if needed)
 COPY app/ ./app/
-COPY models/ ./models/
-COPY tests/ ./tests/
+# Note: models/ and tests/ are handled by Railway volume mounts and are not copied into Docker image
 
 # Create models directory
 RUN mkdir -p models
