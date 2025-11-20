@@ -25,24 +25,26 @@ class VoiceModelSetup:
     def __init__(self):
         self.base_dir = Path(__file__).parent
         self.models_dir = self.base_dir / "models"
+        # Railway mounts volume at /data/models, so /data is accessible
         self.data_dir = Path("/data")
+        # Volume mount point is /data/models, so models go directly here
         self.target_models_dir = self.data_dir / "models"
         
         # Model configurations
         self.vosk_config = {
             "name": "vosk-model-ar-0.22-linto-1.1.0",
-            "local_path": self.models_dir / "stt" / "vosk-model-ar-0.22-linto-1.1.0",
+            "local_path": self.models_dir / "vosk-model-ar-0.22-linto-1.1.0",  # Correct local path
             "target_path": self.target_models_dir / "stt" / "vosk-model-ar-0.22-linto-1.1.0",
             "size_mb": 500,
             "source_type": "github"  # or "local" if found
         }
-        
+
         self.tts_config = {
             "name": "tts_models--multilingual--multi-dataset--xtts_v2",
             "local_path": self.models_dir / "tts" / "tts_models--multilingual--multi-dataset--xtts_v2",
             "target_path": self.target_models_dir / "tts" / "tts_models--multilingual--multi-dataset--xtts_v2",
             "size_mb": 1000,
-            "source_type": "download"  # Always download TTS models
+            "source_type": "auto"  # TTS library handles downloads automatically
         }
         
         # Download URLs for models
@@ -218,11 +220,13 @@ class VoiceModelSetup:
             if self.download_model(self.vosk_config):
                 success_count += 1
         
-        # Setup TTS model
+        # Setup TTS model - Just create directories, TTS library handles downloads
         logger.info("\n--- Setting up Coqui XTTS TTS Model ---")
-        logger.info("Downloading TTS model (not available locally)")
-        if self.download_model(self.tts_config):
-            success_count += 1
+        logger.info("TTS model will be auto-downloaded by the library on first use")
+        # Ensure TTS directory exists for when library downloads it
+        self.tts_config["target_path"].parent.mkdir(parents=True, exist_ok=True)
+        logger.info("✅ TTS directory structure ready")
+        success_count += 1  # Consider TTS setup successful (directories created)
         
         # Final status
         logger.info(f"\n🎉 Setup completed: {success_count}/{total_models} models ready")

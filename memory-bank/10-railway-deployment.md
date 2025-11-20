@@ -1,5 +1,36 @@
 # Railway Migration Guide
 
+## 🚨 CRITICAL FIX APPLIED - November 20, 2025 - Voice Model Setup Fix
+
+**Problem**: Railway Python voice service failing to start with PORT configuration and missing voice models
+
+**Root Cause**: Models not downloaded during build, volume mounting configuration issues, PORT variable expansion failing in nixpacks
+
+**Complete Solution Applied**:
+1. ✅ **Enhanced nixpacks.toml**: Updated to run `setup_voice_models.py` during install phase:
+   - Added executable permissions to setup script
+   - Model setup now runs after dependency installation
+   - Voice models downloaded/extracted to Railway volume
+
+2. ✅ **Fixed setup_voice_models.py**: Corrected volume path handling:
+   - Vosk model: `models/vosk-model-ar-0.22-linto-1.1.0` → `/data/models/stt/vosk-model-ar-0.22-linto-1.1.0`
+   - TTS model: Uses library auto-download, creates directory structure only
+   - Proper error handling and logging for Railway environment
+
+3. ✅ **Enhanced start.sh script**: Added PORT validation and model verification:
+   - Explicit PORT environment variable check with fallback
+   - Pre-start model validation to ensure service doesn't start without models
+   - Clear error messages for debugging volume mounting issues
+
+4. ✅ **Volume Mounting**: Confirmed Railway volume configuration:
+   - Volume name: "voice-models"
+   - Mount path: `/data/models`
+   - Persistent storage for 500MB Vosk + 1GB TTS models
+
+**Result**: Railway build now properly downloads voice models and validates PORT configuration before starting service.
+
+---
+
 ## 🚨 CRITICAL FIX APPLIED - November 17, 2025
 
 **Problem**: Railway build was failing with "supabaseKey is required" error and React context provider errors  

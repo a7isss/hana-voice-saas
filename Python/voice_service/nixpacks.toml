@@ -8,12 +8,14 @@ env = [
 [phases.build]
 cmds = [
     "cd /app && uv sync --frozen --no-dev",
-    "chmod +x start.sh"
+    "chmod +x start.sh",
+    "chmod +x setup_voice_models.py"
 ]
 
 [phases.install]
 cmds = [
-    "cd /app && source .venv/bin/activate"
+    "cd /app && source .venv/bin/activate",
+    "cd /app && python setup_voice_models.py"
 ]
 
 [start]
