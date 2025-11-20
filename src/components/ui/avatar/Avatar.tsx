@@ -1,62 +1,61 @@
-import Image from "next/image";
 import React from "react";
+import Image from "next/image";
 
 interface AvatarProps {
-  src: string; // URL of the avatar image
-  alt?: string; // Alt text for the avatar
-  size?: "xsmall" | "small" | "medium" | "large" | "xlarge" | "xxlarge"; // Avatar size
-  status?: "online" | "offline" | "busy" | "none"; // Status indicator
+  src?: string;
+  alt?: string;
+  name?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  className?: string;
 }
-
-const sizeClasses = {
-  xsmall: "h-6 w-6 max-w-6",
-  small: "h-8 w-8 max-w-8",
-  medium: "h-10 w-10 max-w-10",
-  large: "h-12 w-12 max-w-12",
-  xlarge: "h-14 w-14 max-w-14",
-  xxlarge: "h-16 w-16 max-w-16",
-};
-
-const statusSizeClasses = {
-  xsmall: "h-1.5 w-1.5 max-w-1.5",
-  small: "h-2 w-2 max-w-2",
-  medium: "h-2.5 w-2.5 max-w-2.5",
-  large: "h-3 w-3 max-w-3",
-  xlarge: "h-3.5 w-3.5 max-w-3.5",
-  xxlarge: "h-4 w-4 max-w-4",
-};
-
-const statusColorClasses = {
-  online: "bg-success-500",
-  offline: "bg-error-400",
-  busy: "bg-warning-500",
-};
 
 const Avatar: React.FC<AvatarProps> = ({
   src,
-  alt = "User Avatar",
-  size = "medium",
-  status = "none",
+  alt,
+  name,
+  size = "md",
+  className = "",
 }) => {
+  const sizeClasses = {
+    sm: "h-8 w-8",
+    md: "h-10 w-10",
+    lg: "h-12 w-12",
+    xl: "h-16 w-16",
+  };
+  
+  const textSizeClasses = {
+    sm: "text-sm",
+    md: "text-base",
+    lg: "text-lg",
+    xl: "text-2xl",
+  };
+  
+  const getInitials = (name?: string) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map(word => word[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+  
   return (
-    <div className={`relative  rounded-full ${sizeClasses[size]}`}>
-      {/* Avatar Image */}
-      <Image
-        width="0"
-        height="0"
-        sizes="100vw"
-        src={src}
-        alt={alt}
-        className="object-cover w-full rounded-full"
-      />
-
-      {/* Status Indicator */}
-      {status !== "none" && (
-        <span
-          className={`absolute bottom-0 right-0 rounded-full border-[1.5px] border-white dark:border-gray-900 ${
-            statusSizeClasses[size]
-          } ${statusColorClasses[status] || ""}`}
-        ></span>
+    <div className={`relative inline-flex ${sizeClasses[size]} ${className}`}>
+      {src ? (
+        <Image
+          className="rounded-full object-cover"
+          fill
+          src={src}
+          alt={alt || name || "Avatar"}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-gray-500 text-white font-medium">
+          <span className={textSizeClasses[size]}>
+            {getInitials(name)}
+          </span>
+        </div>
       )}
     </div>
   );

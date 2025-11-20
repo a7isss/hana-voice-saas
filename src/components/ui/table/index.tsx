@@ -1,64 +1,84 @@
 import React, { ReactNode } from "react";
 
-// Props for Table
 interface TableProps {
-  children: ReactNode; // Table content (thead, tbody, etc.)
-  className?: string; // Optional className for styling
+  children: ReactNode;
+  className?: string;
 }
 
-// Props for TableHeader
+const Table: React.FC<TableProps> = ({ children, className = "" }) => {
+  return (
+    <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+      <table className={`min-w-full divide-y divide-gray-300 ${className}`}>
+        {children}
+      </table>
+    </div>
+  );
+};
+
 interface TableHeaderProps {
-  children: ReactNode; // Header row(s)
-  className?: string; // Optional className for styling
+  children: ReactNode;
+  className?: string;
 }
 
-// Props for TableBody
+const TableHeader: React.FC<TableHeaderProps> = ({ children, className = "" }) => {
+  return (
+    <thead className={`bg-gray-50 ${className}`}>
+      {children}
+    </thead>
+  );
+};
+
 interface TableBodyProps {
-  children: ReactNode; // Body row(s)
-  className?: string; // Optional className for styling
+  children: ReactNode;
+  className?: string;
 }
 
-// Props for TableRow
+const TableBody: React.FC<TableBodyProps> = ({ children, className = "" }) => {
+  return (
+    <tbody className={`divide-y divide-gray-200 bg-white ${className}`}>
+      {children}
+    </tbody>
+  );
+};
+
 interface TableRowProps {
-  children: ReactNode; // Cells (th or td)
-  className?: string; // Optional className for styling
+  children: ReactNode;
 }
 
-// Props for TableCell
+const TableRow: React.FC<TableRowProps> = ({ children }) => {
+  return (
+    <tr>
+      {children}
+    </tr>
+  );
+};
+
+interface TableHeadProps {
+  children: ReactNode;
+  className?: string;
+}
+
+const TableHead: React.FC<TableHeadProps> = ({ children, className = "" }) => {
+  return (
+    <th className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${className}`}>
+      {children}
+    </th>
+  );
+};
+
 interface TableCellProps {
-  children: ReactNode; // Cell content
-  isHeader?: boolean; // If true, renders as <th>, otherwise <td>
-  className?: string; // Optional className for styling
+  children: ReactNode;
+  className?: string;
+  isHeader?: boolean;
 }
 
-// Table Component
-const Table: React.FC<TableProps> = ({ children, className }) => {
-  return <table className={`min-w-full  ${className}`}>{children}</table>;
+const TableCell: React.FC<TableCellProps> = ({ children, className = "", isHeader = false }) => {
+  const baseClass = isHeader ? "font-medium text-gray-900" : "text-gray-900";
+  return (
+    <td className={`px-6 py-4 whitespace-nowrap text-sm ${baseClass} ${className}`}>
+      {children}
+    </td>
+  );
 };
 
-// TableHeader Component
-const TableHeader: React.FC<TableHeaderProps> = ({ children, className }) => {
-  return <thead className={className}>{children}</thead>;
-};
-
-// TableBody Component
-const TableBody: React.FC<TableBodyProps> = ({ children, className }) => {
-  return <tbody className={className}>{children}</tbody>;
-};
-
-// TableRow Component
-const TableRow: React.FC<TableRowProps> = ({ children, className }) => {
-  return <tr className={className}>{children}</tr>;
-};
-
-// TableCell Component
-const TableCell: React.FC<TableCellProps> = ({
-  children,
-  isHeader = false,
-  className,
-}) => {
-  const CellTag = isHeader ? "th" : "td";
-  return <CellTag className={` ${className}`}>{children}</CellTag>;
-};
-
-export { Table, TableHeader, TableBody, TableRow, TableCell };
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };

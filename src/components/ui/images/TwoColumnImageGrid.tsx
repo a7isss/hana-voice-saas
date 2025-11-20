@@ -1,28 +1,31 @@
-import Image from "next/image";
 import React from "react";
+import Image from "next/image";
 
-export default function TwoColumnImageGrid() {
+interface ImageGridProps {
+  images: Array<{
+    src: string;
+    alt: string;
+    className?: string;
+  }>;
+  className?: string;
+}
+
+const TwoColumnImageGrid: React.FC<ImageGridProps> = ({ images, className = "" }) => {
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-      <div>
-        <Image
-          src="/images/grid-image/image-02.png"
-          alt=" grid"
-          className="w-full border border-gray-200 rounded-xl dark:border-gray-800"
-          width={517}
-          height={295}
-        />
-      </div>
-
-      <div>
-        <Image
-          src="/images/grid-image/image-03.png"
-          alt=" grid"
-          className="w-full border border-gray-200 rounded-xl dark:border-gray-800"
-          width={517}
-          height={295}
-        />
-      </div>
+    <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}>
+      {images.map((image, index) => (
+        <div key={index} className={`relative aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-lg ${image.className || ""}`}>
+          <Image
+            src={image.src}
+            alt={image.alt}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, 50vw"
+          />
+        </div>
+      ))}
     </div>
   );
-}
+};
+
+export default TwoColumnImageGrid;

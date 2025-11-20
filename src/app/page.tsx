@@ -10,7 +10,7 @@ export default function IntelligentMachinesLanding() {
 
   return (
     <>
-      <HaloPageLight radius={200} intensity={0.39} />
+      <HaloPageLight />
       <div className="min-h-screen bg-gray-950 relative overflow-hidden">
         {/* Animated gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-blue-950/50 to-indigo-950/50" />

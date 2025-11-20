@@ -1,46 +1,43 @@
-import type React from "react";
+import React from "react";
 import Link from "next/link";
 
 interface DropdownItemProps {
-  tag?: "a" | "button";
+  children: React.ReactNode;
   href?: string;
   onClick?: () => void;
-  onItemClick?: () => void;
-  baseClassName?: string;
   className?: string;
-  children: React.ReactNode;
+  onItemClick?: () => void;
+  tag?: string;
 }
 
-export const DropdownItem: React.FC<DropdownItemProps> = ({
-  tag = "button",
+const DropdownItem: React.FC<DropdownItemProps> = ({
+  children,
   href,
   onClick,
-  onItemClick,
-  baseClassName = "block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900",
   className = "",
-  children,
+  onItemClick,
+  tag,
 }) => {
-  const combinedClasses = `${baseClassName} ${className}`.trim();
-
-  const handleClick = (event: React.MouseEvent) => {
-    if (tag === "button") {
-      event.preventDefault();
-    }
-    if (onClick) onClick();
-    if (onItemClick) onItemClick();
-  };
-
-  if (tag === "a" && href) {
+  const baseClasses = "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900";
+  
+  const handleClick = onClick || onItemClick;
+  
+  const classes = `${baseClasses} ${className}`;
+  
+  // If tag is explicitly set to "a" or href is provided, use Link
+  if (tag === "a" || href) {
     return (
-      <Link href={href} className={combinedClasses} onClick={handleClick}>
+      <Link href={href || "#"} className={classes}>
         {children}
       </Link>
     );
   }
-
+  
   return (
-    <button onClick={handleClick} className={combinedClasses}>
+    <button onClick={handleClick} className={classes}>
       {children}
     </button>
   );
 };
+
+export { DropdownItem };

@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Next.js Frontend
+  hana-voice-saas:
+    build:
+      context: .
+      dockerfile: Dockerfile.nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - VOICE_SERVICE_URL=http://hana-voice-service:8000
+      - VOICE_SERVICE_SECRET=${VOICE_SERVICE_SECRET}
+      - PORT=3000
+    depends_on:
+      - hana-voice-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Python Voice Service
+  hana-voice-service:
+    build:
+      context: ./Python/voice_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - VOICE_SERVICE_SECRET=${VOICE_SERVICE_SECRET:-hana_voice_shared_secret_2024_secure_key}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-10}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+      - VOSK_MODEL_PATH=${VOSK_MODEL_PATH:-models/vosk-model-ar-0.22-linto-1.1.0}
+      - TTS_MODEL_NAME=${TTS_MODEL_NAME:-tts_models/multilingual/multi-dataset/xtts_v2}
+      - SAMPLE_RATE=${SAMPLE_RATE:-16000}
+      - AUDIO_FORMAT=${AUDIO_FORMAT:-wav}
+      - PROCESSING_TIMEOUT=${PROCESSING_TIMEOUT:-30}
+      - SKIP_MODEL_LOADING=${SKIP_MODEL_LOADING:-false}
+    volumes:
+      - voice_models_data:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Local Supabase (uncomment if you want to test locally)
+  # supabase:
+  #   image: supabase/supabase:latest
+  #   ports:
+  #     - "54321:54321"
+  #   environment:
+  #     - POSTGRES_PASSWORD=your-super-secret-and-long-postgres-password
+
+volumes:
+  voice_models_data:
