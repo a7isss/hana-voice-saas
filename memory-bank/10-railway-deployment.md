@@ -38,6 +38,35 @@
 
 ---
 
+## 🚨 CRITICAL FIX APPLIED - November 20, 2025 - PORT Configuration Fix
+
+**Problem**: Railway Python voice service failing with "Invalid value for '--port': '${PORT:-8000}' is not a valid integer" error
+
+**Root Cause**: Used deprecated railway.json configuration instead of modern nixpacks.toml
+
+**Complete Solution Applied**:
+1. ✅ **Created nixpacks.toml**: New `Python/voice_service/nixpacks.toml` with proper Railway configuration:
+   - Modern nixpacks format with proper phases
+   - Correct PORT environment variable handling (Railway sets this automatically)
+   - Proper uv package management
+   - Volume mounting for voice models
+   - Python 3.11 environment specification
+
+2. ✅ **Fixed start.sh script**: Updated to use unescaped `${PORT}` instead of `\$PORT`:
+   - Proper environment variable expansion
+   - Simplified virtual environment handling (nixpacks creates it)
+   - Removed redundant dependency installation (handled by nixpacks)
+
+3. ✅ **Fixed pyproject.toml**: Updated from deprecated format:
+   - Changed `[tool.uv.dev-dependencies]` to `[dependency-groups.dev]`
+   - Now compatible with modern uv version
+
+4. ✅ **Removed deprecated railway.json**: Deleted outdated configuration file
+
+**Result**: Railway build should now work correctly with proper PORT handling and modern configuration format.
+
+---
+
 This guide will help you migrate your voice app from Render to Railway.
 
 ## Why Railway is Better for Your Voice App
