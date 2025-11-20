@@ -11,7 +11,7 @@ cmds = [
 [phases.build]
 cmds = [
     'export PATH="$HOME/.local/bin:$PATH"',
-    'uv sync --frozen --no-dev'
+    'pip install -r requirements.txt'
 ]
 
 [phases.start]

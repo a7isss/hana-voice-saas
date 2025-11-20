@@ -1,0 +1,46 @@
+# Railway Deployment Fix Implementation
+
+## Root Cause Analysis
+The deployment fails because:
+- Railway's Nixpacks auto-detects Python projects with pyproject.toml
+- Nixpacks tries to use `uv sync` for dependency management
+- The base Ubuntu image doesn't include `uv` by default
+- Build fails with: `/bin/bash: line 1: uv: command not found`
+
+## Solution Implementation
+
+### ✅ Step 1: Create Nixpacks Configuration
+Created `Python/voice_service/nixpacks.toml` to install `uv` during the Nixpacks setup phase.
+
+**Configuration Details:**
+- **Setup Phase**: Installs Python 3.12, pip, and curl
+- **Install Phase**: Downloads and installs `uv` via official installer script
+- **Build Phase**: Uses `uv sync --frozen --no-dev` for dependency installation  
+- **Start Phase**: Runs the FastAPI application with uvicorn
+
+### Step 2: Update Railway Configuration  
+Verify railway.toml properly configures both services.
+
+### Step 3: Test Deployment
+Deploy and verify that both services start correctly after the fix.
+
+## Files Created/Modified
+1. ✅ `Python/voice_service/nixpacks.toml` - Installs uv during build process
+2. `railway.toml` - May need verification/updates
+
+## Technical Details
+
+### Why This Solution Works
+1. **Explicit UV Installation**: The nixpacks.toml forces Nixpacks to install `uv` in the setup phase
+2. **Path Configuration**: Ensures `uv` is available in PATH for all subsequent phases
+3. **Dependency Management**: Uses `uv sync` which is already configured in pyproject.toml
+4. **Service Discovery**: Railway will automatically detect and use the nixpacks configuration
+
+### Expected Build Process
+1. Nixpacks detects Python project with pyproject.toml
+2. Setup phase installs Python 3.12, pip, curl
+3. Install phase downloads and installs `uv` 
+4. Build phase runs `uv sync --frozen --no-dev`
+5. Start phase launches the application
+
+This should resolve the "uv: command not found" error and allow successful deployment.
