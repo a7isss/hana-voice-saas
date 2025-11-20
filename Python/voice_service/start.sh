@@ -27,6 +27,19 @@ echo
 if [ -d ".venv" ]; then
     source .venv/bin/activate
     echo "✓ Virtual environment activated"
+
+    echo
+    echo "Setting up voice models..."
+    echo "==========================================="
+    python setup_voice_models.py
+    setup_exit_code=$?
+    if [ $setup_exit_code -ne 0 ]; then
+        echo "❌ Model setup failed with exit code $setup_exit_code"
+        echo "Continuing anyway to avoid deployment failure..."
+    else
+        echo "✅ Model setup completed"
+    fi
+    echo "==========================================="
 fi
 
 echo

@@ -14,8 +14,7 @@ cmds = [
 
 [phases.install]
 cmds = [
-    "cd /app && source .venv/bin/activate",
-    "cd /app && python setup_voice_models.py"
+    "cd /app && source .venv/bin/activate"
 ]
 
 [start]

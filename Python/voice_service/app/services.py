@@ -50,9 +50,15 @@ class VoiceService:
                 vosk_path = persistent_stt_path if os.path.exists(persistent_stt_path) else local_stt_path
 
                 if not os.path.exists(vosk_path):
-                    raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path} (checked both persistent and local paths)")
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Vosk model not found at {vosk_path}, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2
+                        continue
+                    else:
+                        raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path} (checked both persistent and local paths, tried {max_retries} times)")
 
-                logger.info(f"Loading Vosk model from: {vosk_path} (attempt {attempt + 1}/{max_retries})")
+                logger.info(f"Loading Vosk model from: {vosk_path} (attempt {attempt + 1})")
                 self.vosk_model = Model(vosk_path)
                 logger.info("✅ Vosk Arabic model loaded successfully")
 
@@ -62,15 +68,15 @@ class VoiceService:
 
                 if os.path.exists(persistent_tts_path):
                     # Use pre-deployed model from persistent disk
-                    logger.info(f"Loading Coqui XTTS model from persistent disk: {persistent_tts_path} (attempt {attempt + 1}/{max_retries})")
+                    logger.info(f"Loading Coqui XTTS model from persistent disk: {persistent_tts_path}")
                     self.tts_model = TTS(model_path=persistent_tts_path, config_path=os.path.join(persistent_tts_path, "config.json"), gpu=False)
                 elif os.path.exists(local_tts_path):
                     # Use local pre-downloaded model
-                    logger.info(f"Loading Coqui XTTS model from local cache: {local_tts_path} (attempt {attempt + 1}/{max_retries})")
+                    logger.info(f"Loading Coqui XTTS model from local cache: {local_tts_path}")
                     self.tts_model = TTS(model_path=local_tts_path, config_path=os.path.join(local_tts_path, "config.json"), gpu=False)
                 else:
                     # Download model (fallback for development)
-                    logger.info(f"Downloading Coqui XTTS model (fallback)... (attempt {attempt + 1}/{max_retries})")
+                    logger.info(f"Downloading Coqui XTTS model (fallback)...")
                     self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
 
                 logger.info("✅ Coqui XTTS model loaded successfully")
