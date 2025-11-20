@@ -17,4 +17,20 @@ cmds = [
 ]
 
 [phases.start]
-cmd = 'export PATH="$HOME/.local/bin:$PATH" && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT'
+cmd = 'export PATH="$HOME/.local/bin:$PATH" && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT}'
+
+[env]
+VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
+LOG_LEVEL = "INFO"
+MAX_CONCURRENT_SESSIONS = "10"
+RATE_LIMIT_PER_MINUTE = "60"
+
+# Voice Model Configuration
+VOSK_MODEL_PATH = "models/vosk-model-ar-0.22-linto-1.1.0"
+TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
+SAMPLE_RATE = "16000"
+AUDIO_FORMAT = "wav"
+
+# Performance Configuration
+PROCESSING_TIMEOUT = "30"
+SKIP_MODEL_LOADING = "false"
