@@ -37,49 +37,65 @@ class VoiceService:
         self._check_model_health()
 
     def _load_models(self):
-        """Load both TTS and STT models with retry logic and persistent disk support"""
+        """Load both TTS and STT models with Railway-first download logic"""
         max_retries = 3
         retry_delay = 2
+        is_railway = os.path.exists("/data")
 
         for attempt in range(max_retries):
             try:
-                # Vosk Arabic STT Model - Check persistent disk first, then local
-                persistent_stt_path = "/data/models/stt/vosk-model-ar-0.22-linto-1.1.0"
+                # Vosk Arabic STT Model - Railway deployment prioritizes downloads
+                target_stt_path = "/data/models/stt/vosk-model-ar-0.22-linto-1.1.0"
                 local_stt_path = "models/vosk-model-ar-0.22-linto-1.1.0"
 
-                vosk_path = persistent_stt_path if os.path.exists(persistent_stt_path) else local_stt_path
-
-                if not os.path.exists(vosk_path):
-                    if attempt < max_retries - 1:
-                        logger.warning(f"Vosk model not found at {vosk_path}, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
-                        time.sleep(retry_delay)
-                        retry_delay *= 2
-                        continue
+                if is_railway:
+                    # Railway deployment: Check volume first, then download
+                    if os.path.exists(target_stt_path):
+                        logger.info("✅ Vosk model exists on Railway volume")
+                        vosk_path = target_stt_path
                     else:
-                        raise FileNotFoundError(f"Vosk Arabic model not found at {vosk_path} (checked both persistent and local paths, tried {max_retries} times)")
+                        logger.info("⬇️ Downloading Vosk model to Railway volume...")
+                        if not self._download_vosk_model(target_stt_path):
+                            raise FileNotFoundError(f"Failed to download Vosk model")
+                        vosk_path = target_stt_path
+                else:
+                    # Development environment: Use local if available
+                    vosk_path = local_stt_path if os.path.exists(local_stt_path) else target_stt_path
+                    if not os.path.exists(vosk_path):
+                        logger.info(f"⬇️ Downloading Vosk model for development...")
+                        if not self._download_vosk_model(vosk_path):
+                            raise FileNotFoundError(f"Failed to download Vosk model")
 
                 logger.info(f"Loading Vosk model from: {vosk_path} (attempt {attempt + 1})")
                 self.vosk_model = Model(vosk_path)
                 logger.info("✅ Vosk Arabic model loaded successfully")
 
-                # Coqui XTTS Model - Check persistent disk first, then download
-                persistent_tts_path = "/data/models/tts/tts_models--multilingual--multi-dataset--xtts_v2"
+                # Coqui XTTS Model - Always prefer volume, download if needed
+                target_tts_path = "/data/models/tts/tts_models--multilingual--multi-dataset--xtts_v2"
                 local_tts_path = "models/tts/tts_models--multilingual--multi-dataset--xtts_v2"
 
-                if os.path.exists(persistent_tts_path):
-                    # Use pre-deployed model from persistent disk
-                    logger.info(f"Loading Coqui XTTS model from persistent disk: {persistent_tts_path}")
-                    self.tts_model = TTS(model_path=persistent_tts_path, config_path=os.path.join(persistent_tts_path, "config.json"), gpu=False)
+                # Check if TTS target exists (already downloaded to volume)
+                if os.path.exists(target_tts_path):
+                    logger.info("✅ Coqui XTTS model exists on volume")
+                    try:
+                        self.tts_model = TTS(model_path=target_tts_path, config_path=os.path.join(target_tts_path, "config.json"), gpu=False)
+                        logger.info("✅ Coqui XTTS model loaded from volume")
+                    except Exception as e:
+                        logger.warning(f"TTS volume model failed, trying download: {e}")
+                        logger.info("⬇️ Falling back to TTS download...")
+                        self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
+                        logger.info("✅ Coqui XTTS model downloaded successfully")
                 elif os.path.exists(local_tts_path):
-                    # Use local pre-downloaded model
-                    logger.info(f"Loading Coqui XTTS model from local cache: {local_tts_path}")
+                    # Use local model (development)
+                    logger.info("✅ Using local Coqui XTTS model")
                     self.tts_model = TTS(model_path=local_tts_path, config_path=os.path.join(local_tts_path, "config.json"), gpu=False)
+                    logger.info("✅ Coqui XTTS model loaded locally")
                 else:
-                    # Download model (fallback for development)
-                    logger.info(f"Downloading Coqui XTTS model (fallback)...")
+                    # Download fresh (Railway/production first deployment)
+                    logger.info("⬇️ Downloading Coqui XTTS model...")
                     self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
+                    logger.info("✅ Coqui XTTS model downloaded successfully")
 
-                logger.info("✅ Coqui XTTS model loaded successfully")
                 logger.info("🎯 Voice Service initialization complete!")
                 return
 
@@ -91,6 +107,54 @@ class VoiceService:
                     retry_delay *= 2  # Exponential backoff
                 else:
                     raise ModelLoadError(f"Voice model loading failed after {max_retries} attempts: {e}")
+
+    def _download_vosk_model(self, target_path: str) -> bool:
+        """Download Vosk model directly from Alphacephei"""
+        import requests
+
+        try:
+            url = "https://alphacephei.com/vosk/models/vosk-model-ar-0.22-linto-1.1.0.zip"
+            logger.info(f"Downloading Vosk from: {url}")
+
+            # Create target directory
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+
+            # Download ZIP file
+            response = requests.get(url, stream=True, timeout=300)
+            response.raise_for_status()
+
+            zip_path = target_path + ".zip"
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+
+            with open(zip_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0 and downloaded % (10 * 1024 * 1024) == 0:  # Progress every 10MB
+                            progress = (downloaded / total_size) * 100
+                            logger.info(".1f")
+
+            # Extract ZIP
+            logger.info("Extracting Vosk model...")
+            import zipfile
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(os.path.dirname(target_path))
+
+            # Clean up ZIP file
+            os.remove(zip_path)
+
+            if os.path.exists(target_path):
+                logger.info("✅ Vosk model download completed successfully")
+                return True
+            else:
+                logger.error("❌ Vosk model extraction failed")
+                return False
+
+        except Exception as e:
+            logger.error(f"❌ Vosk download failed: {e}")
+            return False
 
     def _check_model_health(self) -> Dict[str, bool]:
         """Check if models are healthy and responsive"""
