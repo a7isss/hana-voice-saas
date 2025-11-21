@@ -197,40 +197,61 @@ class VoiceModelSetup:
             return False
 
     def setup_models(self) -> bool:
-        """Main setup function"""
+        """Main setup function - Prioritizes downloads for Railway deployment"""
         logger.info("🎯 Starting voice model setup...")
-        
-        # Check for local models
+
+        # Check for local models (mostly for development environments)
         vosk_local, tts_local = self.check_local_models()
-        
+        is_railway = os.path.exists("/data")
+
         # Create directories
         self.create_directories()
-        
+
         success_count = 0
         total_models = 2
-        
-        # Setup Vosk model
+
+        # Setup Vosk model - PRIORITIZE DOWNLOADS for Railway deployment
         logger.info("\n--- Setting up Vosk Arabic STT Model ---")
-        if vosk_local:
-            logger.info("Using local Vosk model")
-            if self.copy_local_model(self.vosk_config):
-                success_count += 1
-        else:
-            logger.info("Downloading Vosk model")
+
+        # Check if target already exists on volume (Railway)
+        if self.vosk_config["target_path"].exists():
+            logger.info("✅ Vosk model already exists on volume")
+            success_count += 1
+        elif is_railway:
+            # Railway deployment: Always try download first
+            logger.info("⬇️ Railway deployment: Downloading Vosk model...")
             if self.download_model(self.vosk_config):
                 success_count += 1
-        
+            else:
+                logger.error("❌ Railway: Failed to download Vosk model")
+        else:
+            # Development environment: Try local copy first, then download
+            if vosk_local:
+                logger.info("Using local Vosk model (development)")
+                if self.copy_local_model(self.vosk_config):
+                    success_count += 1
+            else:
+                logger.info("Downloading Vosk model (development)")
+                if self.download_model(self.vosk_config):
+                    success_count += 1
+
         # Setup TTS model - Just create directories, TTS library handles downloads
         logger.info("\n--- Setting up Coqui XTTS TTS Model ---")
-        logger.info("TTS model will be auto-downloaded by the library on first use")
-        # Ensure TTS directory exists for when library downloads it
-        self.tts_config["target_path"].parent.mkdir(parents=True, exist_ok=True)
-        logger.info("✅ TTS directory structure ready")
-        success_count += 1  # Consider TTS setup successful (directories created)
-        
+
+        # Check if TTS target already exists
+        if self.tts_config["target_path"].exists():
+            logger.info("✅ TTS model already exists on volume")
+            success_count += 1
+        else:
+            logger.info("TTS model will be auto-downloaded by the library on first use")
+            # Ensure TTS directory exists for when library downloads it
+            self.tts_config["target_path"].parent.mkdir(parents=True, exist_ok=True)
+            logger.info("✅ TTS directory structure ready")
+            success_count += 1  # Consider TTS setup successful (directories created)
+
         # Final status
         logger.info(f"\n🎉 Setup completed: {success_count}/{total_models} models ready")
-        
+
         if success_count == total_models:
             logger.info("✅ All voice models are ready for use!")
             self.verify_models()
