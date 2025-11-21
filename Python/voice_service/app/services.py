@@ -93,8 +93,25 @@ class VoiceService:
                 else:
                     # Download fresh (Railway/production first deployment)
                     logger.info("⬇️ Downloading Coqui XTTS model...")
-                    self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
-                    logger.info("✅ Coqui XTTS model downloaded successfully")
+                    # Set environment variable to avoid interactive license prompt
+                    os.environ["COQUI_TOS_AGREED"] = "1"
+                    try:
+                        self.tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
+                        logger.info("✅ Coqui XTTS model downloaded successfully")
+                    except Exception as e:
+                        if "EOF when reading a line" in str(e) or "input" in str(e).lower():
+                            logger.warning("TTS license prompt blocked, trying cached model approach...")
+                            # Try to force download without interactive input
+                            from TTS.utils.manage import ModelManager
+                            manager = ModelManager()
+                            model_path, config_path, vocoder_path, vocoder_config_path, model_dir = manager.download_model("tts_models/multilingual/multi-dataset/xtts_v2")
+                            if model_path and config_path:
+                                self.tts_model = TTS(model_path=model_path, config_path=config_path, gpu=False)
+                                logger.info("✅ Coqui XTTS model downloaded with ModelManager")
+                            else:
+                                raise e
+                        else:
+                            raise e
 
                 logger.info("🎯 Voice Service initialization complete!")
                 return
