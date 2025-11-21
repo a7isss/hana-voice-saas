@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 # Security Configuration
 SECRET_KEY = os.environ.get("VOICE_SERVICE_SECRET", "your-secret-key-change-in-production")
-JWT_SECRET = os.environ.get("VOICE_SERVICE_TOKEN", "your-jwt-secret-change-in-production")
 TELEPHONY_TOKEN = os.environ.get("TELEPHONY_TOKEN", None)  # Pre-shared token from telephony company
 MAX_CONCURRENT_SESSIONS = int(os.environ.get("MAX_CONCURRENT_SESSIONS", "10"))
 RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
@@ -418,7 +417,7 @@ def is_webm_format(audio_bytes: bytes) -> bool:
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
     """Verify JWT token for authentication"""
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         return payload
     except jwt.ExpiredSignatureError:
         logger.warning("Token expired")
@@ -479,7 +478,7 @@ def generate_session_token(session_id: str, client_ip: str) -> str:
         "exp": datetime.utcnow() + timedelta(hours=1),
         "iat": datetime.utcnow()
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 @app.get("/auth/token")
 async def get_auth_token(credentials: HTTPAuthorizationCredentials = Depends(security_bearer)):

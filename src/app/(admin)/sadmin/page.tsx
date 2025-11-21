@@ -12,7 +12,7 @@ import {
   AlertIcon as AlertTriangleIcon,
   ErrorIcon as XCircleIcon,
   ArrowRightIcon as RefreshCwIcon,
-  ChevronRightIcon as ExternalLinkIcon,
+  ArrowRightIcon as ExternalLinkIcon,
   ChevronUpIcon as PlayIcon,
   BoltIcon as ZapIcon,
   BoxIcon as ActivityIcon,
@@ -27,6 +27,7 @@ interface ServiceStatus {
   status: 'healthy' | 'warning' | 'error' | 'unknown';
   message: string;
   lastCheck: string;
+  responseTime?: number;
 }
 
 interface VoiceModelStatus {
@@ -84,12 +85,80 @@ export default function SuperAdminDashboard() {
   const handleRefreshStatuses = async () => {
     setIsRefreshing(true);
 
-    // Simulate API calls
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Call the actual voice service health API
+      const response = await fetch('/api/voice-service/health');
+      const voiceHealthData = await response.json();
 
-    setServiceStatuses(mockServiceStatuses);
-    setLastRefresh(new Date());
-    setIsRefreshing(false);
+      // Create service status based on real health check
+      const connectionStatus = voiceHealthData.connection_status;
+      const voiceServiceStatus: ServiceStatus = {
+        name: 'Voice Service',
+        status: connectionStatus === 'connected' ?
+          (voiceHealthData.models?.vosk_arabic && voiceHealthData.models?.coqui_xtts ? 'healthy' : 'warning') :
+          'error',
+        message: connectionStatus === 'connected' ?
+          `Connected (${voiceHealthData.response_time_ms}ms) - Models: ${voiceHealthData.models?.vosk_arabic ? 'STT✓' : 'STT✗'} ${voiceHealthData.models?.coqui_xtts ? 'TTS✓' : 'TTS✗'}` :
+          (voiceHealthData.error || 'Connection failed'),
+        lastCheck: new Date(voiceHealthData.timestamp).toISOString(),
+        responseTime: voiceHealthData.response_time_ms
+      };
+
+      // Keep the other mock services for now (can be updated to real APIs later)
+      const updatedStatuses: ServiceStatus[] = [
+        voiceServiceStatus,
+        {
+          name: 'Database (Supabase)',
+          status: 'healthy',
+          message: 'Connected successfully',
+          lastCheck: new Date().toISOString()
+        },
+        {
+          name: 'Maqsam Integration',
+          status: 'warning',
+          message: 'Awaiting telephony configuration',
+          lastCheck: new Date().toISOString()
+        },
+        {
+          name: 'Railway Volumes',
+          status: 'healthy',
+          message: 'Voice models mounted at /data/models',
+          lastCheck: new Date().toISOString()
+        }
+      ];
+
+      // Update voice model status with real data if connected
+      if (connectionStatus === 'connected' && voiceHealthData.models) {
+        setVoiceModelStatus({
+          stt_model: 'vosk-model-ar-0.22-linto-1.0',
+          tts_model: 'xtts_v2',
+          loaded: voiceHealthData.models.vosk_arabic && voiceHealthData.models.coqui_xtts,
+          memory_usage: '~2.1GB'
+        });
+      }
+
+      setServiceStatuses(updatedStatuses);
+      setLastRefresh(new Date());
+
+    } catch (error) {
+      console.error('Failed to refresh service statuses:', error);
+
+      // Fallback to error state
+      const errorStatuses: ServiceStatus[] = [
+        {
+          name: 'Voice Service',
+          status: 'error',
+          message: 'Health check failed - check API connectivity',
+          lastCheck: new Date().toISOString()
+        },
+        ...mockServiceStatuses.slice(1)
+      ];
+
+      setServiceStatuses(errorStatuses);
+      setLastRefresh(new Date());
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -141,7 +210,7 @@ export default function SuperAdminDashboard() {
       {/* System Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {serviceStatuses.map((service, index) => (
-          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className={`p-2 rounded-full ${getStatusColor(service.status)}`}>
@@ -159,6 +228,187 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Global System Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-blue-600">12</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Active Hospitals</p>
+            </div>
+            <div className="text-3xl">🏥</div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-green-600">847</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Campaigns</p>
+            </div>
+            <div className="text-3xl">📞</div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-orange-600">94.2%</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Success Rate</p>
+            </div>
+            <div className="text-3xl">✅</div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-purple-600">23.50K</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Patients Served</p>
+            </div>
+            <div className="text-3xl">👥</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hospital Management Overview */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="text-3xl">🏥</div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Hospital Management
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Overview of registered healthcare facilities and their status
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            {
+              id: '1',
+              name: 'مستشفى الملك خالد',
+              name_ar: 'King Khalid Hospital',
+              city: 'الرياض',
+              status: 'active',
+              campaigns_count: 45,
+              success_rate: 92.5,
+              last_active: '2025-11-21T10:30:00Z'
+            },
+            {
+              id: '2',
+              name: 'مستشفى الملك فيصل',
+              name_ar: 'King Faisal Hospital',
+              city: 'جدة',
+              status: 'active',
+              campaigns_count: 38,
+              success_rate: 88.9,
+              last_active: '2025-11-21T09:15:00Z'
+            },
+            {
+              id: '3',
+              name: 'مستشفى الأطفال',
+              name_ar: 'Children\'s Hospital',
+              city: 'الدمام',
+              status: 'warning',
+              campaigns_count: 12,
+              success_rate: 75.3,
+              last_active: '2025-11-20T16:45:00Z'
+            },
+            {
+              id: '4',
+              name: 'مستشفى النساء والولادة',
+              name_ar: 'Maternity Hospital',
+              city: 'مكة',
+              status: 'active',
+              campaigns_count: 29,
+              success_rate: 91.7,
+              last_active: '2025-11-21T08:20:00Z'
+            },
+            {
+              id: '5',
+              name: 'مستشفى الملك عبدالعزيز',
+              name_ar: 'King Abdulaziz Hospital',
+              city: 'الطائف',
+              status: 'inactive',
+              campaigns_count: 0,
+              success_rate: 0,
+              last_active: '2025-11-15T14:30:00Z'
+            }
+          ].map((hospital) => (
+            <div key={hospital.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">🏥</div>
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    {hospital.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {hospital.name_ar} • {hospital.city}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="text-center hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {hospital.campaigns_count}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Campaigns</p>
+                </div>
+
+                <div className="text-center hidden sm:block">
+                  <p className={`text-sm font-medium ${
+                    hospital.success_rate > 90 ? 'text-green-600' :
+                    hospital.success_rate > 80 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {hospital.success_rate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Success</p>
+                </div>
+
+                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  hospital.status === 'active' ? 'bg-green-100 text-green-800' :
+                  hospital.status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {hospital.status === 'active' ? 'نشط' :
+                   hospital.status === 'warning' ? 'تحذير' : 'غير نشط'}
+                </div>
+
+                <button
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  onClick={() => {
+                    // Handle hospital details view
+                    console.log('View hospital details:', hospital.id);
+                  }}
+                >
+                  عرض
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+            <div className="flex justify-between items-center">
+              <Link
+                href="/sadmin/hospitals"
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                عرض جميع المستشفيات →
+              </Link>
+
+              <button className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
+                إضافة مستشفى جديد
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Voice Models Status */}

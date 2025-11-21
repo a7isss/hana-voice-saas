@@ -306,27 +306,60 @@ export default function HospitalDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs - Read-Only Hospital Access Only */}
+        {/* Enhanced Tabs - Read-Only Hospital Access Only */}
         <div className="mb-8">
-          <nav className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+          <nav className="flex space-x-1 bg-white rounded-lg p-2 shadow-sm border border-gray-200">
             {[
-              { id: 'overview', label: 'نظرة عامة', icon: '📊', description: 'إحصائيات الأداء والمقاييس' },
-              { id: 'campaigns', label: 'التقارير الصوتية', icon: '📞', description: 'نتائج الحملات الصوتية' },
-              { id: 'patients', label: 'قاعدة المرضى', icon: '👥', description: 'قائمة المرضى المسجلين' },
-              { id: 'appointments', label: 'المواعيد المجدولة', icon: '📅', description: 'المواعيد الطبية المؤكدة' }
+              {
+                id: 'overview',
+                label: 'نظرة عامة',
+                labelEn: 'Overview',
+                icon: '📊',
+                color: 'bg-blue-50 border-blue-200',
+                description: 'إحصائيات الأداء والمقاييس الرئيسية'
+              },
+              {
+                id: 'campaigns',
+                label: 'التقارير الصوتية',
+                labelEn: 'Voice Campaigns',
+                icon: '📞',
+                color: 'bg-green-50 border-green-200',
+                description: 'نتائج وإحصائيات الحملات الصوتية'
+              },
+              {
+                id: 'patients',
+                label: 'قاعدة المرضى',
+                labelEn: 'Patient Database',
+                icon: '👥',
+                color: 'bg-purple-50 border-purple-200',
+                description: 'قاعدة بيانات المرضى المسجلين'
+              },
+              {
+                id: 'appointments',
+                label: 'المواعيد المجدولة',
+                labelEn: 'Scheduled Appointments',
+                icon: '📅',
+                color: 'bg-orange-50 border-orange-200',
+                description: 'المواعيد الطبية المؤكدة والمقررة'
+              }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 py-3 px-4 text-sm font-medium rounded-md transition-colors text-center ${
+                className={`flex-1 py-4 px-4 text-sm font-medium rounded-lg transition-all text-center ${
                   activeTab === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? `${tab.color} text-gray-900 border-2 shadow-sm`
+                    : `text-gray-600 hover:text-gray-900 hover:bg-gray-50`
                 }`}
                 title={tab.description}
               >
-                <div className="text-lg mb-1">{tab.icon}</div>
-                <div>{tab.label}</div>
+                <div className={`text-2xl mb-2 transition-all ${
+                  activeTab === tab.id ? 'scale-110' : 'scale-100'
+                }`}>
+                  {tab.icon}
+                </div>
+                <div className="font-semibold">{tab.label}</div>
+                <div className="text-xs opacity-75 mt-1">{tab.labelEn}</div>
               </button>
             ))}
           </nav>

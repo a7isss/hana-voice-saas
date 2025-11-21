@@ -23,7 +23,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOi
 JWT_SECRET_KEY = "generate_jwt_secret_here"
 
 # Voice Service Integration (OPTIONAL - Add your values if using voice features)
-VOICE_SERVICE_URL = "https://hana-voice-service.up.railway.app"
+# For Railway internal networking, use reference variables:
+VOICE_SERVICE_URL = "http://${{hana-voice-service.RAILWAY_PRIVATE_DOMAIN}}:${{hana-voice-service.PORT}}"
 VOICE_SERVICE_SECRET = "hana_voice_shared_secret_2024_secure_key"
 
 # Admin Access (ADD VIA RAILWAY UI - Do not hardcode)

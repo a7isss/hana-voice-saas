@@ -78,4 +78,5 @@ echo "==========================================="
 echo
 
 # Start the service - PORT is automatically set by Railway/nixpacks
-uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --log-level ${LOG_LEVEL}
+# Bind to IPv6 "::" as required for Railway internal networking
+uv run uvicorn app.main:app --host "::" --port ${PORT} --log-level ${LOG_LEVEL}

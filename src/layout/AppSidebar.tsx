@@ -12,6 +12,10 @@ import {
   PlugInIcon,
   LockIcon,
   AudioIcon,
+  GroupIcon,
+  PageIcon,
+  DocsIcon,
+  BoxCubeIcon,
 } from "../icons/index";
 
 
@@ -22,7 +26,8 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
-const navItems: NavItem[] = [
+// Regular Admin Navigation (Testing/Development)
+const adminNavItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
@@ -42,11 +47,6 @@ const navItems: NavItem[] = [
     icon: <PlugInIcon />,
     name: "Campaign",
     path: "/campaign",
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Calling Robot",
-    path: "/calling-robot",
   },
   {
     icon: <PlugInIcon />,
@@ -70,6 +70,40 @@ const navItems: NavItem[] = [
   },
 ];
 
+// Super Admin Navigation (System Management)
+const superAdminNavItems: NavItem[] = [
+  {
+    icon: <GridIcon />,
+    name: "System Dashboard",
+    path: "/sadmin",
+  },
+  {
+    icon: <GroupIcon />,
+    name: "Hospital Management",
+    path: "/sadmin/hospitals",
+  },
+  {
+    icon: <PageIcon />,
+    name: "Survey Templates",
+    path: "/sadmin/surveys",
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "System Analytics",
+    path: "/sadmin/analytics",
+  },
+  {
+    icon: <AudioIcon />,
+    name: "Voice System",
+    path: "/sadmin/voice",
+  },
+  {
+    icon: <BoxCubeIcon />,
+    name: "System Settings",
+    path: "/sadmin/settings",
+  },
+];
+
 const othersItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
@@ -86,6 +120,12 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Determine if we're in super admin mode
+  const isSuperAdmin = pathname.startsWith('/sadmin') || pathname.startsWith('/admin/sadmin');
+
+  // Select appropriate navigation items based on context
+  const currentNavItems = isSuperAdmin ? superAdminNavItems : adminNavItems;
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -229,7 +269,7 @@ const AppSidebar: React.FC = () => {
     // Check if the current path matches any submenu item
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? currentNavItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -249,7 +289,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname,isActive]);
+  }, [pathname, isActive, currentNavItems]);
 
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
@@ -361,7 +401,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(currentNavItems, "main")}
             </div>
 
             <div className="">
