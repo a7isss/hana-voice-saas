@@ -3,11 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Activity as ActivityIcon,
-  Cpu as CpuIcon,
-  HardDrive as HardDriveIcon,
-  Network as NetworkIcon,
-  Shield as ShieldIcon,
   AudioIcon,
   ShootingStarIcon as TestTubeIcon,
   BoxCubeIcon as SettingsIcon,
@@ -16,11 +11,16 @@ import {
   CheckCircleIcon,
   AlertIcon as AlertTriangleIcon,
   ErrorIcon as XCircleIcon,
-  RefreshCw as RefreshCwIcon,
-  ExternalLink as ExternalLinkIcon,
-  Play as PlayIcon,
-  BoltIcon as ZapIcon
-} from '../icons/index';
+  ArrowRightIcon as RefreshCwIcon,
+  ChevronRightIcon as ExternalLinkIcon,
+  ChevronUpIcon as PlayIcon,
+  BoltIcon as ZapIcon,
+  BoxIcon as ActivityIcon,
+  BoxCubeIcon as CpuIcon,
+  DownloadIcon as NetworkIcon,
+  PageIcon as HardDriveIcon,
+  LockIcon as ShieldIcon
+} from '../../../icons/index';
 
 interface ServiceStatus {
   name: string;
