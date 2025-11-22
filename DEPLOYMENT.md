@@ -196,9 +196,10 @@ RATE_LIMIT_PER_MINUTE=60
 If you have Maqsam credentials, add to **hana-voice-saas**:
 
 ```env
-MAQSAM_API_URL=https://api.maqsam.com
-MAQSAM_API_TOKEN=your_maqsam_token
-MAQSAM_PHONE_NUMBER=+966XXXXXXXXX
+TELEPHONY_TOKEN=your_maqsam_pre_shared_token
+```
+
+For advanced Maqsam configuration, these are available in the database settings UI.
 ```
 
 ---
