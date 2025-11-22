@@ -1,9 +1,10 @@
 "use client";
-import React, { useEffect, useRef, useState,useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "../context/AuthContext";
 import {
   ChevronDownIcon,
   GridIcon,
@@ -16,8 +17,7 @@ import {
   PageIcon,
   DocsIcon,
   BoxCubeIcon,
-} from "../icons/index";
-
+} from '../icons/index';
 
 type NavItem = {
   name: string;
@@ -317,28 +317,15 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const { logout } = useAuth();
+
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'logout' }),
-      });
-      
-      // Redirect to login page
-      router.push('/signin');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      // Still redirect to login page even if API call fails
-      router.push('/signin');
-    }
+    await logout(); // The logout function handles the API call and redirect
   };
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
         ${
           isExpanded || isMobileOpen
             ? "w-[290px]"

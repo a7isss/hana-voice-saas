@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@/context/ThemeContext";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 export default function RootLayout({
@@ -12,7 +13,9 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning className="bg-gray-50">
         <ThemeProvider>
-          <div className="min-h-screen">{children}</div>
+          <AuthProvider>
+            <div className="min-h-screen">{children}</div>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

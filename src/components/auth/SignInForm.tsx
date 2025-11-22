@@ -3,41 +3,27 @@ import { ChevronLeftIcon, EyeIcon, EyeCloseIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
-  
+
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Check if user is already logged in
+  // Redirect if already authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action: 'validate' }),
-        });
-        
-        const data = await response.json();
-        if (data.authenticated) {
-          router.push(redirect);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      }
-    };
-
-    checkAuth();
-  }, [router, redirect]);
+    if (isAuthenticated) {
+      router.push(redirect);
+    }
+  }, [isAuthenticated, router, redirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,25 +31,13 @@ export default function SignInForm() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'login',
-          username,
-          password
-        }),
-      });
+      const result = await login(username, password);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Login successful, redirect to intended page
-        router.push(redirect);
+      if (result.success) {
+        // Login successful, the auth context will handle the redirect
+        // No need to do it here since useEffect will redirect when isAuthenticated becomes true
       } else {
-        setError(data.error || 'Login failed');
+        setError(result.error || 'Login failed');
       }
     } catch {
       setError('Network error. Please try again.');
