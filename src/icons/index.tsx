@@ -1,5 +1,6 @@
 import PlusIcon from "./plus.svg";
 import CloseIcon from "./close.svg";
+import SearchIcon from "./search.svg";
 import BoxIcon from "./box.svg";
 import CheckCircleIcon from "./check-circle.svg";
 import AlertIcon from "./alert.svg";
@@ -55,6 +56,7 @@ import BellIcon from "./bell.svg";
 export {
   DownloadIcon,
   BellIcon,
+  SearchIcon,
   MoreDotIcon,
   FileIcon,
   GridIcon,

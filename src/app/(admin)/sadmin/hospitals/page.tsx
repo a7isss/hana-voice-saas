@@ -217,7 +217,7 @@ export default function HospitalManagement() {
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">إجمالي المرضى</p>
             </div>
-            <UsersIcon className="h-8 w-8 text-purple-600" />
+            <UserIcon className="h-8 w-8 text-purple-600" />
           </div>
         </div>
       </div>
