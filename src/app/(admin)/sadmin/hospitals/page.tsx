@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon, UsersIcon, HospitalIcon, PlusIcon, SearchIcon } from '../../../icons/index';
+import { ChevronLeftIcon, UserIcon, GroupIcon, PlusIcon, SearchIcon } from '../../../../icons/index';
 
 export default function HospitalManagement() {
   const hospitals = [
@@ -50,7 +50,7 @@ export default function HospitalManagement() {
             href="/sadmin"
             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <ArrowLeftIcon className="h-5 w-5" />
+            <ChevronLeftIcon className="h-5 w-5" />
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -112,7 +112,7 @@ export default function HospitalManagement() {
                   hospital.status === 'warning' ? 'bg-yellow-100 text-yellow-600' :
                   'bg-gray-100 text-gray-600'
                 }`}>
-                  <HospitalIcon className="h-6 w-6" />
+                  <GroupIcon className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -181,7 +181,7 @@ export default function HospitalManagement() {
               <p className="text-2xl font-bold text-blue-600">{hospitals.length}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">إجمالي المستشفيات</p>
             </div>
-            <HospitalIcon className="h-8 w-8 text-blue-600" />
+            <GroupIcon className="h-8 w-8 text-blue-600" />
           </div>
         </div>
 
@@ -193,7 +193,7 @@ export default function HospitalManagement() {
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">مستشفيات نشطة</p>
             </div>
-            <UsersIcon className="h-8 w-8 text-green-600" />
+            <UserIcon className="h-8 w-8 text-green-600" />
           </div>
         </div>
 
@@ -205,7 +205,7 @@ export default function HospitalManagement() {
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">إجمالي الحملات</p>
             </div>
-            <HospitalIcon className="h-8 w-8 text-orange-600" />
+            <GroupIcon className="h-8 w-8 text-orange-600" />
           </div>
         </div>
 

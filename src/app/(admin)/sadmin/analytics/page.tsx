@@ -114,7 +114,7 @@ export default function SystemAnalytics() {
       {/* Trends Chart (Simple representation) */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-6">
-          <TrendingUpIcon className="h-5 w-5 text-blue-600" />
+          <ArrowUpIcon className="h-5 w-5 text-blue-600" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             اتجاهات الأداء الشهرية
           </h2>
@@ -149,7 +149,7 @@ export default function SystemAnalytics() {
                     {trend.patients.toLocaleString()}
                   </td>
                   <td className="text-center py-3 px-4">
-                    <TrendingUpIcon className={`h-4 w-4 ${
+                    <ArrowUpIcon className={`h-4 w-4 ${
                       index === 0 ? 'text-green-600' :
                       trend.success > analyticsData.trends[index - 1]?.success ? 'text-green-600' : 'text-red-600'
                     }`} />
@@ -164,7 +164,7 @@ export default function SystemAnalytics() {
       {/* Hospital Performance Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-6">
-          <TrendingUpIcon className="h-5 w-5 text-green-600" />
+          <ArrowUpIcon className="h-5 w-5 text-green-600" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             أداء المستشفيات
           </h2>
@@ -246,7 +246,7 @@ export default function SystemAnalytics() {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 mb-4">
-            <UsersIcon className="h-5 w-5 text-green-600" />
+            <UserIcon className="h-5 w-5 text-green-600" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               إحصائيات المرضى
             </h3>
