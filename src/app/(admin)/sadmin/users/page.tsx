@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeftIcon, UserIcon, GroupIcon, PlusIcon, SearchIcon, MoreDotIcon, PencilIcon, TrashBinIcon } from '../../../../icons/index';
+import { ChevronLeftIcon, UserIcon, GroupIcon, PlusIcon, SearchIcon, MoreDotIcon, PencilIcon, TrashBinIcon, BoltIcon } from '../../../../icons/index';
 
 interface User {
   id: string;
@@ -13,6 +13,7 @@ interface User {
   status: 'active' | 'inactive' | 'suspended';
   hospital_id?: string;
   hospital_name?: string;
+  token_balance?: number; // New field
   last_login: string;
   created_at: string;
 }
@@ -23,6 +24,12 @@ export default function UserManagement() {
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Recharge Modal State
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState<number>(100);
+  const [rechargeUser, setRechargeUser] = useState<User | null>(null);
+  const [isRecharging, setIsRecharging] = useState(false);
 
   // Mock data for now
   useEffect(() => {
@@ -46,6 +53,7 @@ export default function UserManagement() {
         status: 'active',
         hospital_id: '1',
         hospital_name: 'King Khalid Hospital',
+        token_balance: 500,
         last_login: '2025-11-21T14:15:00Z',
         created_at: '2025-10-15T00:00:00Z'
       },
@@ -70,6 +78,7 @@ export default function UserManagement() {
         status: 'inactive',
         hospital_id: '2',
         hospital_name: 'King Faisal Hospital',
+        token_balance: 120,
         last_login: '2025-11-15T16:30:00Z',
         created_at: '2025-09-10T00:00:00Z'
       },
@@ -92,8 +101,8 @@ export default function UserManagement() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
 
@@ -133,6 +142,49 @@ export default function UserManagement() {
       case 'inactive': return 'bg-gray-100 text-gray-800';
       case 'suspended': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleOpenRecharge = (user: User) => {
+    setRechargeUser(user);
+    setRechargeAmount(100);
+    setShowRechargeModal(true);
+  };
+
+  const handleRechargeSubmit = async () => {
+    if (!rechargeUser || !rechargeUser.hospital_id) return;
+
+    setIsRecharging(true);
+    try {
+      // Call API to recharge
+      const response = await fetch('/api/sadmin/recharge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hospitalId: rechargeUser.hospital_id,
+          amount: rechargeAmount,
+          adminId: 'current-admin-id' // Replace with actual auth user id
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setUsers(users.map(u => {
+          if (u.hospital_id === rechargeUser.hospital_id && u.role === 'hospital_admin') {
+            return { ...u, token_balance: (u.token_balance || 0) + rechargeAmount };
+          }
+          return u;
+        }));
+        setShowRechargeModal(false);
+        alert('تم شحن الرصيد بنجاح');
+      } else {
+        alert('حدث خطأ أثناء الشحن');
+      }
+    } catch (error) {
+      console.error('Recharge failed', error);
+      alert('فشل الاتصال بالخادم');
+    } finally {
+      setIsRecharging(false);
     }
   };
 
@@ -209,7 +261,7 @@ export default function UserManagement() {
                   الدور
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  المستشفى
+                  المستشفى (الرصيد)
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   الحالة
@@ -251,7 +303,14 @@ export default function UserManagement() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {user.hospital_name || 'غير محدد'}
+                    <div>
+                      {user.hospital_name || 'غير محدد'}
+                      {user.role === 'hospital_admin' && user.token_balance !== undefined && (
+                        <div className="text-xs text-blue-600 font-medium mt-1">
+                          الرصيد: {user.token_balance} نقطة
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
@@ -263,6 +322,15 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
+                      {user.role === 'hospital_admin' && (
+                        <button
+                          onClick={() => handleOpenRecharge(user)}
+                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                          title="شحن رصيد"
+                        >
+                          <BoltIcon className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => setSelectedUser(user)}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
@@ -339,6 +407,44 @@ export default function UserManagement() {
           </div>
         </div>
       </div>
+
+      {/* Recharge Modal */}
+      {showRechargeModal && rechargeUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              شحن رصيد - {rechargeUser.hospital_name}
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                عدد النقاط
+              </label>
+              <input
+                type="number"
+                value={rechargeAmount}
+                onChange={(e) => setRechargeAmount(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                min="1"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowRechargeModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleRechargeSubmit}
+                disabled={isRecharging}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isRecharging ? 'جاري الشحن...' : 'تأكيد الشحن'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
