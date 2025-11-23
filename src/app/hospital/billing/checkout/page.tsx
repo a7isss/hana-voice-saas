@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeftIcon, CreditCardIcon, CheckCircleIcon, LockIcon } from '../../../icons/index';
+import { ChevronLeft, CreditCard, CheckCircle, Lock } from 'lucide-react';
 
 export default function CheckoutPage() {
     const router = useRouter();
@@ -65,7 +65,7 @@ export default function CheckoutPage() {
                     href="/hospital/billing"
                     className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                    <ChevronLeftIcon className="h-5 w-5" />
+                    <ChevronLeft className="h-5 w-5" />
                 </Link>
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -89,8 +89,8 @@ export default function CheckoutPage() {
                                 key={pkg.tokens}
                                 onClick={() => setSelectedPackage(pkg.tokens)}
                                 className={`relative cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPackage === pkg.tokens
-                                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
                                     }`}
                             >
                                 {pkg.discount && (
@@ -120,7 +120,7 @@ export default function CheckoutPage() {
                         </h2>
                         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center gap-4">
                             <div className="p-2 bg-gray-100 rounded">
-                                <CreditCardIcon className="h-6 w-6 text-gray-600" />
+                                <CreditCard className="h-6 w-6 text-gray-600" />
                             </div>
                             <div>
                                 <p className="font-medium text-gray-900 dark:text-white">Credit Card ending in 4242</p>
@@ -159,22 +159,22 @@ export default function CheckoutPage() {
                             onClick={handlePurchase}
                             disabled={!selectedPackage || isProcessing}
                             className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-medium transition-colors ${!selectedPackage || isProcessing
-                                    ? 'bg-gray-300 cursor-not-allowed text-gray-500'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20'
+                                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20'
                                 }`}
                         >
                             {isProcessing ? (
                                 <>Processing...</>
                             ) : (
                                 <>
-                                    <LockIcon className="h-4 w-4" />
+                                    <Lock className="h-4 w-4" />
                                     Pay {total.toFixed(2)} SAR
                                 </>
                             )}
                         </button>
 
                         <div className="mt-4 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
-                            <LockIcon className="h-3 w-3" />
+                            <Lock className="h-3 w-3" />
                             Secure Payment via Stripe (Mock)
                         </div>
                     </div>
