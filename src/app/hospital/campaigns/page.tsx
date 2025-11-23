@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Button from '@/components/ui/button/Button';
 import Input from '@/components/form/input/InputField';
 import Select from '@/components/form/Select';
+import ExcelJS from 'exceljs';
 
 interface Question {
   id: number;
@@ -34,31 +35,17 @@ interface AudioSet {
   audio_files?: AudioFile[];
 }
 
-
-
-interface CallResult {
-  patientId: string;
-  phoneNumber: string;
-  conversationId: string;
-  startedAt: string;
-  completedAt: string;
-  status: 'completed' | 'failed';
-  duration?: number;
-  responses?: Array<{
-    questionId: number;
-    questionText: string;
-    response: string;
-    confidence: number;
-  }>;
-  failureReason?: string;
-}
-
 interface QuestionTemplate {
   id: number;
   template_name: string;
   department: string;
   language: string;
   questions: TemplateQuestions;
+}
+
+interface PatientData {
+  name: string;
+  phone: string;
 }
 
 export default function CallingRobotPage() {
@@ -74,7 +61,6 @@ export default function CallingRobotPage() {
   const [templates, setTemplates] = useState<QuestionTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedTemplateData, setSelectedTemplateData] = useState<QuestionTemplate | null>(null);
-
 
   const [callHistory, setCallHistory] = useState<Array<{
     patient: string;
@@ -143,14 +129,54 @@ export default function CallingRobotPage() {
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
-          file.name.endsWith('.xlsx')) {
+      if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        file.name.endsWith('.xlsx')) {
         setExcelFile(file);
         setCallStatus('Excel file uploaded successfully');
       } else {
         setCallStatus('Please upload a valid Excel file (.xlsx)');
       }
     }
+  };
+
+  const parseExcelFile = async (file: File): Promise<PatientData[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target?.result as ArrayBuffer;
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(buffer);
+
+          const worksheet = workbook.getWorksheet(1);
+          if (!worksheet) {
+            reject(new Error('No worksheet found'));
+            return;
+          }
+
+          const patients: PatientData[] = [];
+
+          // Iterate over rows starting from row 2 (assuming header is row 1)
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return; // Skip header
+
+            // Assuming Name is col 1, Phone is col 2
+            const name = row.getCell(1).text;
+            const phone = row.getCell(2).text;
+
+            if (phone) {
+              patients.push({ name: name || 'Unknown', phone });
+            }
+          });
+
+          resolve(patients);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsArrayBuffer(file);
+    });
   };
 
   const initiateCalls = async () => {
@@ -165,136 +191,99 @@ export default function CallingRobotPage() {
     }
 
     setIsCalling(true);
-    setCallStatus('Starting automated calls...');
+    setCallStatus('Reading Excel file...');
 
     try {
-      const formData = new FormData();
-      formData.append('excelFile', excelFile);
-      formData.append('templateId', selectedTemplate);
+      const patients = await parseExcelFile(excelFile);
+      setCallStatus(`Found ${patients.length} patients. Starting queue...`);
 
-      const response = await fetch('/api/telephony', {
-        method: 'POST',
-        body: formData
-      });
+      // Create a Campaign ID (mock for now, or fetch from backend)
+      const campaignId = `camp_${Date.now()}`;
 
-      if (response.ok) {
-        const result = await response.json();
-        setCallStatus(`Calling initiated for ${result.totalPatients} patients using template: ${selectedTemplateData?.template_name || 'Unknown'}`);
-        
-        // Simulate call progress and save results
-        simulateAndSaveCallResults(result.totalPatients);
-      } else {
-        const errorData = await response.json();
-        setCallStatus(`Call initiation failed: ${errorData.error}`);
-      }
-    } catch {
-      setCallStatus('Call initiation failed. Please try again.');
+      processPatientQueue(patients, campaignId);
+    } catch (error) {
+      console.error('Error parsing Excel:', error);
+      setCallStatus('Failed to parse Excel file.');
+      setIsCalling(false);
     }
   };
 
-  const simulateAndSaveCallResults = async (totalPatients: number) => {
+  const processPatientQueue = async (patients: PatientData[], campaignId: string) => {
     let completed = 0;
     let failed = 0;
-    let pending = totalPatients;
-    const callResults: CallResult[] = [];
+    setCallsPending(patients.length);
+    setCallsCompleted(0);
+    setCallsFailed(0);
 
-    setCallsPending(pending);
-    setCallsFailed(failed);
-    setCallsCompleted(completed);
-
-    const callStartTime = new Date().toISOString();
-
-    const interval = setInterval(async () => {
-      // Simulate call outcomes
-      const isSuccess = Math.random() > 0.2; // 80% success rate
-
-      const patientNum = completed + failed + 1;
-      const phoneNumber = `+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`;
-      const callResult: CallResult = {
-        patientId: `patient_${patientNum}`,
-        phoneNumber,
-        conversationId: `conv_${Date.now()}_${patientNum}`,
-        startedAt: callStartTime,
-        completedAt: new Date().toISOString(),
-        status: 'completed'
-      };
-
-      if (isSuccess) {
-        completed++;
-        setCallsCompleted(completed);
-
-        // Simulate survey responses
-        callResult.status = 'completed';
-        callResult.duration = Math.floor(Math.random() * 180) + 30; // 30-210 seconds
-        callResult.responses = [
-          { questionId: 1, questionText: "هل تشعر بألم في الصدر؟", response: Math.random() > 0.5 ? "نعم" : "لا", confidence: Math.random() * 0.4 + 0.6 },
-          { questionId: 2, questionText: "هل تتناول أدويتك بانتظام؟", response: Math.random() > 0.3 ? "نعم" : "لا", confidence: Math.random() * 0.4 + 0.6 },
-          { questionId: 3, questionText: "هل تحتاج إلى موعد طبي؟", response: Math.random() > 0.6 ? "نعم" : "لا", confidence: Math.random() * 0.4 + 0.6 }
-        ];
-
-        setCallHistory(prev => [...prev, {
-          patient: `Patient ${patientNum}`,
-          phone: phoneNumber,
-          status: 'completed',
-          timestamp: new Date().toLocaleString()
-        }]);
-      } else {
-        failed++;
-        setCallsFailed(failed);
-
-        callResult.status = 'failed';
-        callResult.duration = 0;
-        callResult.failureReason = Math.random() > 0.5 ? 'no_answer' : 'busy_signal';
-
-        setCallHistory(prev => [...prev, {
-          patient: `Patient ${patientNum}`,
-          phone: phoneNumber,
-          status: 'failed',
-          timestamp: new Date().toLocaleString()
-        }]);
-      }
-
-      callResults.push(callResult);
-
-      pending = totalPatients - completed - failed;
-      setCallsPending(pending);
-      setCurrentPatient(`Patient ${patientNum + 1}`);
-      setCurrentPhoneNumber(`+9665${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`);
-
-      if (completed + failed >= totalPatients) {
-        clearInterval(interval);
-        setIsCalling(false);
-
-        // Save batch results to database
-        const companyName = 'Demo Hospital'; // Use default since company greeting is now part of the script
-
-        try {
-          const batchResult = await fetch('/api/data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'save-call-batch-results',
-              clientId: 'demo-client', // In real app, this would come from auth
-              companyName,
-
-              audioSetId: selectedTemplateData?.id,
-              callResults
-            })
-          });
-
-          if (batchResult.ok) {
-            const result = await batchResult.json();
-            setCallStatus(`Calls completed and saved under ${companyName}: ${completed} successful, ${failed} failed. Batch ID: ${result.batchId}`);
-          } else {
-            setCallStatus(`Calls completed (${completed} successful, ${failed} failed) but failed to save results: ${batchResult.statusText}`);
-          }
-        } catch (error) {
-          setCallStatus(`Calls completed (${completed} successful, ${failed} failed) but error saving: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    for (const patient of patients) {
+      if (isPaused) {
+        setCallStatus('Queue paused. Waiting to resume...');
+        // Simple pause logic: wait loop
+        while (isPaused) {
+          await new Promise(r => setTimeout(r, 1000));
         }
       }
-    }, 3000); // Simulate 3 seconds per call
+
+      setCurrentPatient(patient.name);
+      setCurrentPhoneNumber(patient.phone);
+      setCallStatus(`Calling ${patient.name}...`);
+
+      try {
+        // 1. Trigger Call
+        const triggerRes = await fetch('/api/campaigns/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientName: patient.name,
+            phoneNumber: patient.phone,
+            templateId: selectedTemplate,
+            campaignId: campaignId
+          })
+        });
+
+        if (!triggerRes.ok) throw new Error('Failed to trigger call');
+        const { sessionId } = await triggerRes.json();
+
+        // 2. Poll Status
+        let status = 'queued';
+        while (status === 'queued' || status === 'ringing' || status === 'in-progress') {
+          await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
+          const statusRes = await fetch(`/api/campaigns/status?sessionId=${sessionId}`);
+          const statusData = await statusRes.json();
+          status = statusData.status;
+        }
+
+        if (status === 'completed') {
+          completed++;
+          setCallsCompleted(completed);
+          setCallHistory(prev => [...prev, {
+            patient: patient.name,
+            phone: patient.phone,
+            status: 'completed',
+            timestamp: new Date().toLocaleString()
+          }]);
+        } else {
+          failed++;
+          setCallsFailed(failed);
+          setCallHistory(prev => [...prev, {
+            patient: patient.name,
+            phone: patient.phone,
+            status: 'failed',
+            timestamp: new Date().toLocaleString()
+          }]);
+        }
+
+      } catch (error) {
+        console.error('Call error:', error);
+        failed++;
+        setCallsFailed(failed);
+      }
+
+      setCallsPending(prev => prev - 1);
+    }
+
+    setIsCalling(false);
+    setCallStatus(`Campaign Finished: ${completed} Completed, ${failed} Failed.`);
   };
 
   const testSingleCall = async () => {
@@ -303,38 +292,70 @@ export default function CallingRobotPage() {
       return;
     }
 
+    if (!selectedTemplate) {
+      setCallStatus('Please select a survey template first');
+      return;
+    }
+
     setIsCalling(true);
     setCallStatus(`Testing call to ${phoneNumber}...`);
 
     try {
-      const response = await fetch('/api/telephony', {
+      // 1. Trigger Call
+      const triggerRes = await fetch('/api/campaigns/trigger', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'initiate-call',
+          patientName: 'Test Patient',
           phoneNumber: phoneNumber,
-          clientId: 'test-client',
-          audioUrl: '/api/voice?action=generate-test-audio',
-          surveyId: 'test-survey',
-          language: 'ar'
+          templateId: selectedTemplate,
+          campaignId: `test_${Date.now()}`
         })
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setCallStatus(`Test call initiated: ${result.callId}`);
-      } else {
-        const errorData = await response.json();
-        setCallStatus(`Test call failed: ${errorData.error}`);
+      if (!triggerRes.ok) {
+        const errorData = await triggerRes.json();
+        throw new Error(errorData.error || 'Failed to trigger call');
       }
-    } catch {
-      setCallStatus('Test call failed. Please try again.');
+
+      const { sessionId } = await triggerRes.json();
+      setCallStatus(`Call initiated (Session: ${sessionId}). Waiting for completion...`);
+
+      // 2. Poll Status
+      let status = 'queued';
+      while (status === 'queued' || status === 'ringing' || status === 'in-progress') {
+        await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
+        const statusRes = await fetch(`/api/campaigns/status?sessionId=${sessionId}`);
+        const statusData = await statusRes.json();
+        status = statusData.status;
+      }
+
+      if (status === 'completed') {
+        setCallStatus(`Test Call Completed Successfully!`);
+        setCallHistory(prev => [...prev, {
+          patient: 'Test Patient',
+          phone: phoneNumber,
+          status: 'completed',
+          timestamp: new Date().toLocaleString()
+        }]);
+      } else {
+        setCallStatus(`Test Call Failed.`);
+        setCallHistory(prev => [...prev, {
+          patient: 'Test Patient',
+          phone: phoneNumber,
+          status: 'failed',
+          timestamp: new Date().toLocaleString()
+        }]);
+      }
+
+    } catch (error: any) {
+      console.error('Test call error:', error);
+      setCallStatus(`Test call failed: ${error.message}`);
     } finally {
       setIsCalling(false);
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -382,7 +403,7 @@ export default function CallingRobotPage() {
                 Upload an Excel file with patient names and phone numbers
               </p>
             </div>
-            
+
             {excelFile && (
               <div className="text-sm text-green-600">
                 Selected: {excelFile.name}
@@ -430,7 +451,7 @@ export default function CallingRobotPage() {
                 className="w-full"
               />
             </div>
-            
+
             <Button
               onClick={testSingleCall}
               disabled={isCalling || !phoneNumber}
@@ -456,11 +477,10 @@ export default function CallingRobotPage() {
 
       {/* Status and Progress */}
       {callStatus && (
-        <div className={`p-4 rounded-lg ${
-          callStatus.includes('failed') ? 'bg-red-50 border border-red-200' : 
-          callStatus.includes('success') ? 'bg-green-50 border border-green-200' : 
-          'bg-blue-50 border border-blue-200'
-        }`}>
+        <div className={`p-4 rounded-lg ${callStatus.includes('failed') ? 'bg-red-50 border border-red-200' :
+          callStatus.includes('success') ? 'bg-green-50 border border-green-200' :
+            'bg-blue-50 border border-blue-200'
+          }`}>
           <div className="flex items-center">
             <div className="flex-shrink-0">
               {callStatus.includes('failed') ? (
@@ -472,11 +492,10 @@ export default function CallingRobotPage() {
               )}
             </div>
             <div className="ml-3">
-              <p className={`text-sm font-medium ${
-                callStatus.includes('failed') ? 'text-red-800' : 
-                callStatus.includes('success') ? 'text-green-800' : 
-                'text-blue-800'
-              }`}>
+              <p className={`text-sm font-medium ${callStatus.includes('failed') ? 'text-red-800' :
+                callStatus.includes('success') ? 'text-green-800' :
+                  'text-blue-800'
+                }`}>
                 {callStatus}
               </p>
             </div>
@@ -488,7 +507,7 @@ export default function CallingRobotPage() {
       {(isCalling || callHistory.length > 0) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Call Progress & Statistics</h2>
-          
+
           {/* Real-time Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
@@ -500,7 +519,7 @@ export default function CallingRobotPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
               <div className="flex items-center">
                 <div className="text-green-600 dark:text-green-400 text-2xl mr-3">✓</div>
@@ -510,7 +529,7 @@ export default function CallingRobotPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
               <div className="flex items-center">
                 <div className="text-red-600 dark:text-red-400 text-2xl mr-3">⚠</div>
@@ -530,10 +549,10 @@ export default function CallingRobotPage() {
                 <span className="text-sm text-gray-500">{currentPhoneNumber}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                <div 
-                  className="bg-brand-600 h-3 rounded-full transition-all duration-300" 
-                  style={{ 
-                    width: `${((callsCompleted + callsFailed) / (callsCompleted + callsFailed + callsPending)) * 100 || 0}%` 
+                <div
+                  className="bg-brand-600 h-3 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${((callsCompleted + callsFailed) / (callsCompleted + callsFailed + callsPending)) * 100 || 0}%`
                   }}
                 ></div>
               </div>
@@ -577,11 +596,10 @@ export default function CallingRobotPage() {
                           {call.phone}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            call.status === 'completed' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          }`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${call.status === 'completed'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}>
                             {call.status === 'completed' ? '✓ Completed' : '⚠ Failed'}
                           </span>
                         </td>

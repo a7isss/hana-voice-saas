@@ -11,15 +11,17 @@ interface User {
   full_name: string;
   role: 'super_admin' | 'hospital_admin' | 'user';
   status: 'active' | 'inactive' | 'suspended';
+  email_verified: boolean;
   hospital_id?: string;
   hospital_name?: string;
-  token_balance?: number; // New field
+  token_balance?: number;
   last_login: string;
   created_at: string;
 }
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -31,73 +33,54 @@ export default function UserManagement() {
   const [rechargeUser, setRechargeUser] = useState<User | null>(null);
   const [isRecharging, setIsRecharging] = useState(false);
 
-  // Mock data for now
   useEffect(() => {
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        username: 'ahmadyounis',
-        email: 'ahmadyounis@example.com',
-        full_name: 'Ahmad Younis',
-        role: 'super_admin',
-        status: 'active',
-        last_login: '2025-11-22T08:30:00Z',
-        created_at: '2025-10-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        username: 'dr_smith',
-        email: 'drsmith@kfh.com',
-        full_name: 'Dr. Smith',
-        role: 'hospital_admin',
-        status: 'active',
-        hospital_id: '1',
-        hospital_name: 'King Khalid Hospital',
-        token_balance: 500,
-        last_login: '2025-11-21T14:15:00Z',
-        created_at: '2025-10-15T00:00:00Z'
-      },
-      {
-        id: '3',
-        username: 'nurse_johnson',
-        email: 'njohnson@kfh.com',
-        full_name: 'Nurse Johnson',
-        role: 'user',
-        status: 'active',
-        hospital_id: '1',
-        hospital_name: 'King Khalid Hospital',
-        last_login: '2025-11-21T09:45:00Z',
-        created_at: '2025-10-20T00:00:00Z'
-      },
-      {
-        id: '4',
-        username: 'admin_faisal',
-        email: 'admin@kfh Jeddah.com',
-        full_name: 'Admin Faisal',
-        role: 'hospital_admin',
-        status: 'inactive',
-        hospital_id: '2',
-        hospital_name: 'King Faisal Hospital',
-        token_balance: 120,
-        last_login: '2025-11-15T16:30:00Z',
-        created_at: '2025-09-10T00:00:00Z'
-      },
-      {
-        id: '5',
-        username: 'support_suspended',
-        email: 'support@suspended.com',
-        full_name: 'Suspended User',
-        role: 'user',
-        status: 'suspended',
-        hospital_id: '3',
-        hospital_name: 'Children\'s Hospital',
-        last_login: '2025-11-10T11:20:00Z',
-        created_at: '2025-08-05T00:00:00Z'
-      }
-    ];
-
-    setUsers(mockUsers);
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/sadmin/users');
+      const data = await res.json();
+      if (data.users) {
+        setUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (user: User, newStatus: boolean) => {
+    try {
+      const res = await fetch('/api/sadmin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, is_active: newStatus })
+      });
+      if (res.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error updating status', error);
+    }
+  };
+
+  const handleVerifyEmail = async (user: User) => {
+    if (!confirm(`Verify email for ${user.email}?`)) return;
+    try {
+      const res = await fetch('/api/sadmin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, email_verified: true })
+      });
+      if (res.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error verifying email', error);
+    }
+  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -275,7 +258,11 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredUsers.map((user) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">Loading...</td>
+                </tr>
+              ) : filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -289,11 +276,16 @@ export default function UserManagement() {
                           {user.full_name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          @{user.username}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {user.email}
                         </div>
+                        {!user.email_verified && (
+                          <button
+                            onClick={() => handleVerifyEmail(user)}
+                            className="text-xs text-red-500 hover:text-red-700 underline mt-1"
+                          >
+                            Verify Email
+                          </button>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -313,9 +305,12 @@ export default function UserManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
+                    <button
+                      onClick={() => handleToggleStatus(user, user.status !== 'active')}
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer ${getStatusColor(user.status)}`}
+                    >
                       {getStatusLabel(user.status)}
-                    </span>
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(user.last_login).toLocaleString('ar-SA')}
