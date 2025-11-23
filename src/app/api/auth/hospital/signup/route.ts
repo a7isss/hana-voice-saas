@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { createClient } from '@supabase/supabase-js';
-import { generateJWTToken } from '@/lib/jwt';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
@@ -14,12 +13,12 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, fullName, organizationName } = await request.json();
+    const { email, fullName, organizationName, password } = await request.json();
 
     // Validation
-    if (!email || !fullName || !organizationName) {
+    if (!email || !fullName || !organizationName || !password) {
       return NextResponse.json(
-        { error: 'البريد الإلكتروني والاسم الكامل واسم المؤسسة مطلوبة' },
+        { error: 'Email, full name, organization name, and password are required' },
         { status: 400 }
       );
     }
@@ -33,14 +32,13 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'البريد الإلكتروني مسجل بالفعل' },
+        { error: 'Email is already registered' },
         { status: 409 }
       );
     }
 
-    // Generate secure password (temporary - user will reset via email)
-    const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!';
-    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    // Hash the user-provided password
+    const passwordHash = await bcrypt.hash(password, 12);
 
     // Check if organization exists, create if not
     let { data: organization } = await supabase
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
       if (orgError) {
         console.error('Organization creation error:', orgError);
         return NextResponse.json(
-          { error: 'خطأ في إنشاء المؤسسة' },
+          { error: 'Failed to create organization' },
           { status: 500 }
         );
       }
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
         email,
         full_name: fullName,
         password_hash: passwordHash,
-        role: 'hospital_staff',
+        role: 'hospital_admin',
         hospital_id: organization.id,
         is_active: false, // Requires admin approval
         email_verified: false
@@ -92,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (userError) {
       console.error('User creation error:', userError);
       return NextResponse.json(
-        { error: 'خطأ في إنشاء الحساب' },
+        { error: 'Failed to create user account' },
         { status: 500 }
       );
     }
@@ -112,12 +110,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the whole request, just log it
     }
 
-    // Send verification email (placeholder - implement later)
-    console.log(`Verification email would be sent to ${email} with temp password: ${tempPassword}`);
-
     return NextResponse.json({
       success: true,
-      message: 'تم إنشاء حسابك بنجاح. يرجى انتظار موافقة المشرف',
+      message: 'Account created successfully. Please wait for admin approval.',
       data: {
         user_id: user.id,
         email: user.email,
@@ -129,8 +124,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Hospital signup error:', error);
     return NextResponse.json(
-      { error: 'خطأ في الخادم' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

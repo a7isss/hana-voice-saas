@@ -4,30 +4,29 @@ This directory contains database initialization and migration scripts for Hana V
 
 ## Files
 
-### `init-safe.sql`
-Safe, idempotent database initialization script that can be run multiple times without causing errors.
+### `migrations/00001_initial_schema.sql`
+The initial comprehensive schema for the application. This file contains the "future-proof" design including the hybrid JSON/SQL approach for template responses.
 
 **Features:**
-- ✅ Transaction-wrapped for atomic execution
-- ✅ Idempotent (safe to run multiple times)
-- ✅ Migration tracking system
-- ✅ Automatic rollback on errors
-- ✅ Creates all tables, indexes, and constraints
-- ✅ Enables Row Level Security
-- ✅ Inserts sample data
-- ✅ Sets up triggers for updated_at columns
+- ✅ Complete schema definition
+- ✅ RLS policies
+- ✅ Indexes and performance optimizations
+- ✅ Sample data
+
+### `init-safe.sql`
+(Optional) Safe, idempotent database initialization script. Can be used for local development resets.
 
 **Usage:**
 
 **Option 1: Supabase SQL Editor (Recommended)**
 1. Open Supabase dashboard
 2. Go to SQL Editor
-3. Copy contents of `init-safe.sql`
+3. Copy contents of `db/migrations/00001_initial_schema.sql`
 4. Paste and run
 
 **Option 2: psql Command Line**
 ```bash
-psql "postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres" < db/init-safe.sql
+psql "postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres" < db/migrations/00001_initial_schema.sql
 ```
 
 **Option 3: Node.js Script**
@@ -40,7 +39,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const sql = fs.readFileSync('db/init-safe.sql', 'utf8');
+const sql = fs.readFileSync('db/migrations/00001_initial_schema.sql', 'utf8');
 await supabase.rpc('exec_sql', { sql_query: sql });
 ```
 

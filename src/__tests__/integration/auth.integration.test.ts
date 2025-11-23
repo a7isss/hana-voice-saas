@@ -26,7 +26,7 @@ beforeAll(() => {
     ...originalEnv,
     NEXT_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
-    JWT_SECRET_KEY: 'test-jwt-secret',
+    JWT_SECRET: 'test-jwt-secret',
     ADMIN_USERNAME: 'admin',
     ADMIN_PASSWORD: 'password123'
   };
@@ -90,7 +90,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -138,7 +138,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(401);
 
       const data = await response.json();
@@ -155,7 +155,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -180,7 +180,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(401);
 
       const data = await response.json();
@@ -195,7 +195,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -218,7 +218,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(400);
 
       const data = await response.json();
@@ -233,7 +233,7 @@ describe('/api/auth', () => {
         })
       });
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       expect(response.status).toBe(400);
 
       const data = await response.json();

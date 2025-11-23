@@ -68,7 +68,7 @@ app = FastAPI(
 )
 
 # Configure CORS for WebSocket connections (production secure)
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3001")
+frontend_url = os.environ.get("NEXTJS_API_URL", "http://localhost:3000")
 render_app_url = "https://hana-voice-saas.onrender.com"
 
 app.add_middleware(
@@ -513,32 +513,42 @@ async def secure_websocket_endpoint(websocket: WebSocket, token: str = None):
         await websocket.close(code=429, reason="Rate limit exceeded")
         return
 
-    # Token verification
-    if not token:
-        await websocket.close(code=401, reason="Authentication required")
-        return
+    # Token verification (Optional for internal/dev mode)
+    if token:
+        token_payload = verify_token(token)
+        if not token_payload:
+            await websocket.close(code=401, reason="Invalid or expired token")
+            return
+        
+        # Session limit check (only for authenticated sessions)
+        if not check_concurrent_sessions():
+            await websocket.close(code=429, reason="Too many concurrent sessions")
+            return
 
-    token_payload = verify_token(token)
-    if not token_payload:
-        await websocket.close(code=401, reason="Invalid or expired token")
-        return
+        await websocket.accept()
+        session_id = token_payload.get("session_id", f"secure_{id(websocket)}")
+        logger.info(f"🔐 Secure voice session: {session_id} from {client_ip}")
 
-    # Session limit check
-    if not check_concurrent_sessions():
-        await websocket.close(code=429, reason="Too many concurrent sessions")
-        return
-
-    await websocket.accept()
-    session_id = token_payload.get("session_id", f"secure_{id(websocket)}")
-    logger.info(f"🔐 Secure voice session: {session_id} from {client_ip}")
-
-    # Track active session
-    active_sessions[session_id] = {
-        "active": True,
-        "created_at": time.time(),
-        "client_ip": client_ip,
-        "authenticated": True
-    }
+        # Track active session
+        active_sessions[session_id] = {
+            "active": True,
+            "created_at": time.time(),
+            "client_ip": client_ip,
+            "authenticated": True
+        }
+    else:
+        # Allow unauthenticated internal connections with warning
+        logger.warning(f"⚠️ Unauthenticated connection from {client_ip} (Internal/Dev Mode)")
+        await websocket.accept()
+        session_id = f"internal_{id(websocket)}"
+        
+        # Track active session
+        active_sessions[session_id] = {
+            "active": True,
+            "created_at": time.time(),
+            "client_ip": client_ip,
+            "authenticated": False
+        }
 
     # Session context for questionnaire state management
     session_context = {
@@ -546,7 +556,7 @@ async def secure_websocket_endpoint(websocket: WebSocket, token: str = None):
         "questionnaire_state": "initial",
         "patient_responses": {},
         "language": "ar",
-        "authenticated": True
+        "authenticated": bool(token)
     }
 
     try:
@@ -611,33 +621,45 @@ async def secure_healthcare_endpoint(websocket: WebSocket, token: str = None):
         await websocket.close(code=429, reason="Rate limit exceeded")
         return
 
-    # Token verification
-    if not token:
-        await websocket.close(code=401, reason="Authentication required")
-        return
+    # Token verification (Optional for internal/dev mode)
+    if token:
+        token_payload = verify_token(token)
+        if not token_payload:
+            await websocket.close(code=401, reason="Invalid or expired token")
+            return
 
-    token_payload = verify_token(token)
-    if not token_payload:
-        await websocket.close(code=401, reason="Invalid or expired token")
-        return
+        # Session limit check
+        if not check_concurrent_sessions():
+            await websocket.close(code=429, reason="Too many concurrent sessions")
+            return
 
-    # Session limit check
-    if not check_concurrent_sessions():
-        await websocket.close(code=429, reason="Too many concurrent sessions")
-        return
+        await websocket.accept()
+        session_id = f"secure_healthcare_{id(websocket)}"
+        logger.info(f"🏥🔐 Secure healthcare session: {session_id} from {client_ip}")
 
-    await websocket.accept()
-    session_id = f"secure_healthcare_{id(websocket)}"
-    logger.info(f"🏥🔐 Secure healthcare session: {session_id} from {client_ip}")
+        # Track active session
+        active_sessions[session_id] = {
+            "active": True,
+            "created_at": time.time(),
+            "client_ip": client_ip,
+            "authenticated": True,
+            "type": "healthcare"
+        }
+    else:
+        # Allow unauthenticated internal connections with warning
+        logger.warning(f"⚠️ Unauthenticated connection from {client_ip} (Internal/Dev Mode)")
+        await websocket.accept()
+        session_id = f"internal_healthcare_{id(websocket)}"
+        
+        # Track active session
+        active_sessions[session_id] = {
+            "active": True,
+            "created_at": time.time(),
+            "client_ip": client_ip,
+            "authenticated": False,
+            "type": "healthcare"
+        }
 
-    # Track active session
-    active_sessions[session_id] = {
-        "active": True,
-        "created_at": time.time(),
-        "client_ip": client_ip,
-        "authenticated": True,
-        "type": "healthcare"
-    }
 
     # Enhanced session context for healthcare workflows
     healthcare_context = {
@@ -1045,6 +1067,42 @@ async def admin_health_check(credentials: HTTPAuthorizationCredentials = Depends
         "timestamp": datetime.utcnow().isoformat(),
         "version": health_status["version"]
     }
+
+from fastapi.responses import Response
+from pydantic import BaseModel
+
+class TTSRequest(BaseModel):
+    text: str
+    language: str = "ar"
+
+@app.post("/tts")
+async def text_to_speech_http(request: TTSRequest, credentials: HTTPAuthorizationCredentials = Depends(security_bearer)):
+    """HTTP endpoint for Text-to-Speech generation"""
+    if not credentials or credentials.credentials != SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+
+    if not voice_service:
+        raise HTTPException(status_code=503, detail="Voice service not initialized")
+
+    try:
+        logger.info(f"🔊 HTTP TTS Request: '{request.text}'")
+        audio_file_path = voice_service.text_to_speech(request.text)
+
+        if audio_file_path and os.path.exists(audio_file_path):
+            with open(audio_file_path, "rb") as audio_file:
+                audio_bytes = audio_file.read()
+            
+            # Clean up
+            os.remove(audio_file_path)
+            
+            return Response(content=audio_bytes, media_type="audio/wav")
+        else:
+            raise HTTPException(status_code=500, detail="TTS generation failed")
+            
+    except Exception as e:
+        logger.error(f"❌ HTTP TTS Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # =============================================================================
 # MAQSAM TELEPHONY ENDPOINTS - Full Protocol Implementation

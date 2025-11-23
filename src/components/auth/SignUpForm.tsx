@@ -5,10 +5,68 @@ import Label from "@/components/form/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    if (!isChecked) {
+      setError("You must agree to the Terms and Conditions");
+      setIsLoading(false);
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email");
+    const password = formData.get("password");
+    const fname = formData.get("fname");
+    const lname = formData.get("lname");
+    const organizationName = formData.get("organizationName");
+
+    if (!email || !password || !fname || !lname || !organizationName) {
+      setError("All fields are required");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/hospital/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName: `${fname} ${lname}`,
+          organizationName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Signup failed");
+      }
+
+      // Redirect to login or success page
+      router.push("/signin?registered=true");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -27,7 +85,7 @@ export default function SignUpForm() {
               Sign Up
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign up!
+              Enter your details to create an account
             </p>
           </div>
           <div>
@@ -83,7 +141,7 @@ export default function SignUpForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {/* <!-- First Name --> */}
@@ -96,6 +154,7 @@ export default function SignUpForm() {
                       id="fname"
                       name="fname"
                       placeholder="Enter your first name"
+                      required
                     />
                   </div>
                   {/* <!-- Last Name --> */}
@@ -108,8 +167,22 @@ export default function SignUpForm() {
                       id="lname"
                       name="lname"
                       placeholder="Enter your last name"
+                      required
                     />
                   </div>
+                </div>
+                {/* <!-- Organization Name --> */}
+                <div>
+                  <Label>
+                    Organization Name<span className="text-error-500">*</span>
+                  </Label>
+                  <Input
+                    type="text"
+                    id="organizationName"
+                    name="organizationName"
+                    placeholder="Enter your organization name"
+                    required
+                  />
                 </div>
                 {/* <!-- Email --> */}
                 <div>
@@ -121,6 +194,7 @@ export default function SignUpForm() {
                     id="email"
                     name="email"
                     placeholder="Enter your email"
+                    required
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -132,6 +206,8 @@ export default function SignUpForm() {
                     <Input
                       placeholder="Enter your password"
                       type={showPassword ? "text" : "password"}
+                      name="password"
+                      required
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -163,10 +239,21 @@ export default function SignUpForm() {
                     </span>
                   </p>
                 </div>
+
+                {error && (
+                  <div className="text-sm text-error-500 text-center">
+                    {error}
+                  </div>
+                )}
+
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                    Sign Up
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? "Creating Account..." : "Sign Up"}
                   </button>
                 </div>
               </div>

@@ -34,7 +34,7 @@ interface Answer {
 // Environment validation
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const jwtSecret = process.env.JWT_SECRET_KEY;
+const jwtSecret = process.env.JWT_SECRET;
 
 if (!supabaseUrl || !supabaseAnonKey || !jwtSecret) {
   console.error('Missing required environment variables for response submission');
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Validate JWT token has proper hospital context
     const hospital_id = decoded.hospital_id || metadata.hospital_id;
-    
+
     // Handle different token types
     if (decoded.role === 'voice_service') {
       // Voice service can submit on behalf of any hospital
@@ -97,21 +97,21 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
+
       // Verify hospital exists
       const { data: hospital, error: hospitalError } = await supabase
         .from('hospitals')
         .select('id')
         .eq('id', metadata.hospital_id)
         .single();
-        
+
       if (hospitalError || !hospital) {
         return NextResponse.json(
           { error: 'Invalid hospital_id provided' },
           { status: 400 }
         );
       }
-      
+
       console.log(`Voice service submitting response for hospital: ${metadata.hospital_id}`);
     } else if (decoded.role !== 'super_admin' && !hospital_id) {
       return NextResponse.json(

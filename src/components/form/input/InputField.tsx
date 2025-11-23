@@ -18,6 +18,7 @@ interface InputProps {
   hint?: string; // Optional hint text
   label?: string; // Added label prop
   helperText?: string; // Added helper text prop
+  required?: boolean; // Added required prop
 }
 
 const Input: FC<InputProps> = ({
@@ -38,6 +39,7 @@ const Input: FC<InputProps> = ({
   hint,
   label,
   helperText,
+  required = false,
 }) => {
   // Determine input styles based on state (disabled, success, error)
   let inputClasses = `h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 ${className}`;
@@ -57,7 +59,7 @@ const Input: FC<InputProps> = ({
     <div className="relative">
       {label && (
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {label}
+          {label} {required && <span className="text-error-500">*</span>}
         </label>
       )}
       <input
@@ -72,19 +74,19 @@ const Input: FC<InputProps> = ({
         max={max}
         step={step}
         disabled={disabled}
+        required={required}
         className={inputClasses}
       />
 
       {/* Optional Hint Text */}
       {hint && (
         <p
-          className={`mt-1.5 text-xs ${
-            error
+          className={`mt-1.5 text-xs ${error
               ? "text-error-500"
               : success
-              ? "text-success-500"
-              : "text-gray-500"
-          }`}
+                ? "text-success-500"
+                : "text-gray-500"
+            }`}
         >
           {hint}
         </p>

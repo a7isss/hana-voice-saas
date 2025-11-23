@@ -20,7 +20,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
     full_name VARCHAR(255) NOT NULL,
-    role user_role NOT NULL DEFAULT 'hospital_staff',
+    role user_role NOT NULL DEFAULT 'hospital_admin',
     is_active BOOLEAN DEFAULT true,
 
     -- Hospital association for data isolation
@@ -824,7 +824,7 @@ FOR ALL USING (auth.jwt()->>'role' = 'super_admin');
 
 CREATE POLICY "hospital_staff_hospital_responses" ON template_responses
 FOR ALL USING (auth.jwt()->>'role' IN ('hospital_admin', 'hospital_staff', 'analyst') AND
-               hospital_id IN (SELECT id FROM hospitals WHERE id = auth.jwt()->>'hospital_id'));
+               hospital_id IN (SELECT id FROM hospitals WHERE id = (auth.jwt()->>'hospital_id')::uuid));
 
 -- RLS Policies for template versions
 CREATE POLICY "template_versions_select" ON template_versions

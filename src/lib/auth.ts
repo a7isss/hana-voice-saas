@@ -4,10 +4,12 @@ import jwt from 'jsonwebtoken';
 // Environment validation
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const JWT_SECRET = process.env.JWT_SECRET_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !JWT_SECRET) {
-  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, JWT_SECRET_KEY');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !JWT_SECRET || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
+  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD');
 }
 
 // Initialize Supabase client
@@ -99,59 +101,9 @@ export class AuthService {
     }
   }
 
-  // Legacy method for backward compatibility (admin access)
+  // Authenticate admin user
   static authenticate(username: string, password: string): boolean {
-    const adminUsername = process.env.ADMIN_USERNAME || 'hana_admin';
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    return username === adminUsername && password === adminPassword;
-  }
-
-  // Generate secure credentials for environment variables (for initial setup)
-  static generateSecureCredentials() {
-    const username = 'hana_admin_' + Math.random().toString(36).substring(2, 10);
-    const password = this.generateSecurePassword();
-
-    return {
-      username,
-      password,
-      envVariables: `ADMIN_USERNAME=${username}\nADMIN_PASSWORD=${password}`
-    };
-  }
-
-  private static generateSecurePassword(): string {
-    const length = 16;
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
-
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-
-    return password;
+    return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
   }
 }
 
-// Generate secure credentials for environment variables
-export function generateSecureCredentials() {
-  const username = 'hana_admin_' + Math.random().toString(36).substring(2, 10);
-  const password = generateSecurePassword();
-  
-  return {
-    username,
-    password,
-    envVariables: `ADMIN_USERNAME=${username}\nADMIN_PASSWORD=${password}`
-  };
-}
-
-function generateSecurePassword(): string {
-  const length = 16;
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-  let password = '';
-  
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  
-  return password;
-}

@@ -243,11 +243,17 @@ class VoiceModelSetup:
             logger.info("✅ TTS model already exists on volume")
             success_count += 1
         else:
-            logger.info("TTS model will be auto-downloaded by the library on first use")
-            # Ensure TTS directory exists for when library downloads it
+        else:
+            logger.info("TTS model not found on volume. Downloading to persistent storage...")
+            # Ensure TTS directory exists
             self.tts_config["target_path"].parent.mkdir(parents=True, exist_ok=True)
-            logger.info("✅ TTS directory structure ready")
-            success_count += 1  # Consider TTS setup successful (directories created)
+            
+            # Trigger download by instantiating TTS
+            # Since we set TTS_HOME=/data/models/tts in environment, it should download there
+            if self.download_tts_model(self.tts_config):
+                success_count += 1
+            else:
+                logger.error("❌ Failed to download TTS model to volume")
 
         # Final status
         logger.info(f"\n🎉 Setup completed: {success_count}/{total_models} models ready")

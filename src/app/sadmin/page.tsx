@@ -21,7 +21,7 @@ import {
   PageIcon as HardDriveIcon,
   LockIcon as ShieldIcon,
   UserIcon
-} from '../../../icons/index';
+} from '../../icons/index';
 
 interface ServiceStatus {
   name: string;
@@ -39,6 +39,14 @@ interface VoiceModelStatus {
 }
 
 export default function SuperAdminDashboard() {
+  const [dashboardStats, setDashboardStats] = useState({
+    activeHospitals: 0,
+    totalCampaigns: 0,
+    patientsServed: 0,
+    successRate: 0,
+    hospitals: [] as any[]
+  });
+
   const [serviceStatuses, setServiceStatuses] = useState<ServiceStatus[]>([]);
   const [voiceModelStatus, setVoiceModelStatus] = useState<VoiceModelStatus | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -81,13 +89,28 @@ export default function SuperAdminDashboard() {
       loaded: true,
       memory_usage: '~2.1GB'
     });
+    // Initial fetch
+    handleRefreshStatuses();
   }, []);
 
   const handleRefreshStatuses = async () => {
     setIsRefreshing(true);
 
     try {
-      // Call the actual voice service health API
+      // 1. Fetch Dashboard Stats (Real Data)
+      const statsResponse = await fetch('/api/sadmin/dashboard');
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setDashboardStats(statsData.stats ? { ...statsData.stats, hospitals: statsData.hospitals } : {
+          activeHospitals: 0,
+          totalCampaigns: 0,
+          patientsServed: 0,
+          successRate: 0,
+          hospitals: []
+        });
+      }
+
+      // 2. Call the actual voice service health API
       const response = await fetch('/api/voice-service/health');
       const voiceHealthData = await response.json();
 
@@ -236,7 +259,7 @@ export default function SuperAdminDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-blue-600">12</p>
+              <p className="text-2xl font-bold text-blue-600">{dashboardStats.activeHospitals}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Active Hospitals</p>
             </div>
             <div className="text-3xl">🏥</div>
@@ -246,7 +269,7 @@ export default function SuperAdminDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-green-600">847</p>
+              <p className="text-2xl font-bold text-green-600">{dashboardStats.totalCampaigns}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Campaigns</p>
             </div>
             <div className="text-3xl">📞</div>
@@ -256,7 +279,7 @@ export default function SuperAdminDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-orange-600">94.2%</p>
+              <p className="text-2xl font-bold text-orange-600">{dashboardStats.successRate.toFixed(1)}%</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Success Rate</p>
             </div>
             <div className="text-3xl">✅</div>
@@ -266,7 +289,7 @@ export default function SuperAdminDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-purple-600">23.50K</p>
+              <p className="text-2xl font-bold text-purple-600">{dashboardStats.patientsServed}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Patients Served</p>
             </div>
             <div className="text-3xl">👥</div>
@@ -289,111 +312,64 @@ export default function SuperAdminDashboard() {
         </div>
 
         <div className="space-y-4">
-          {[
-            {
-              id: '1',
-              name: 'مستشفى الملك خالد',
-              name_ar: 'King Khalid Hospital',
-              city: 'الرياض',
-              status: 'active',
-              campaigns_count: 45,
-              success_rate: 92.5,
-              last_active: '2025-11-21T10:30:00Z'
-            },
-            {
-              id: '2',
-              name: 'مستشفى الملك فيصل',
-              name_ar: 'King Faisal Hospital',
-              city: 'جدة',
-              status: 'active',
-              campaigns_count: 38,
-              success_rate: 88.9,
-              last_active: '2025-11-21T09:15:00Z'
-            },
-            {
-              id: '3',
-              name: 'مستشفى الأطفال',
-              name_ar: 'Children\'s Hospital',
-              city: 'الدمام',
-              status: 'warning',
-              campaigns_count: 12,
-              success_rate: 75.3,
-              last_active: '2025-11-20T16:45:00Z'
-            },
-            {
-              id: '4',
-              name: 'مستشفى النساء والولادة',
-              name_ar: 'Maternity Hospital',
-              city: 'مكة',
-              status: 'active',
-              campaigns_count: 29,
-              success_rate: 91.7,
-              last_active: '2025-11-21T08:20:00Z'
-            },
-            {
-              id: '5',
-              name: 'مستشفى الملك عبدالعزيز',
-              name_ar: 'King Abdulaziz Hospital',
-              city: 'الطائف',
-              status: 'inactive',
-              campaigns_count: 0,
-              success_rate: 0,
-              last_active: '2025-11-15T14:30:00Z'
-            }
-          ].map((hospital) => (
-            <div key={hospital.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="text-2xl">🏥</div>
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    {hospital.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {hospital.name_ar} • {hospital.city}
-                  </p>
+          {dashboardStats.hospitals && dashboardStats.hospitals.length > 0 ? (
+            dashboardStats.hospitals.map((hospital) => (
+              <div key={hospital.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">🏥</div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      {hospital.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {hospital.name_ar} • {hospital.city}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="text-center hidden sm:block">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {hospital.campaigns_count}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Campaigns</p>
+                  </div>
+
+                  <div className="text-center hidden sm:block">
+                    <p className={`text-sm font-medium ${hospital.success_rate > 90 ? 'text-green-600' :
+                      hospital.success_rate > 80 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                      {hospital.success_rate.toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Success</p>
+                  </div>
+
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${hospital.status === 'active' ? 'bg-green-100 text-green-800' :
+                    hospital.status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                    {hospital.status === 'active' ? 'نشط' :
+                      hospital.status === 'warning' ? 'تحذير' : 'غير نشط'}
+                  </div>
+
+                  <button
+                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    onClick={() => {
+                      // Handle hospital details view
+                      console.log('View hospital details:', hospital.id);
+                    }}
+                  >
+                    عرض
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-center hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {hospital.campaigns_count}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Campaigns</p>
-                </div>
-
-                <div className="text-center hidden sm:block">
-                  <p className={`text-sm font-medium ${
-                    hospital.success_rate > 90 ? 'text-green-600' :
-                    hospital.success_rate > 80 ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                    {hospital.success_rate.toFixed(1)}%
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Success</p>
-                </div>
-
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  hospital.status === 'active' ? 'bg-green-100 text-green-800' :
-                  hospital.status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {hospital.status === 'active' ? 'نشط' :
-                   hospital.status === 'warning' ? 'تحذير' : 'غير نشط'}
-                </div>
-
-                <button
-                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  onClick={() => {
-                    // Handle hospital details view
-                    console.log('View hospital details:', hospital.id);
-                  }}
-                >
-                  عرض
-                </button>
-              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No hospitals found. Add a new hospital to get started.
             </div>
-          ))}
+          )}
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
             <div className="flex justify-between items-center">
@@ -463,42 +439,42 @@ export default function SuperAdminDashboard() {
           {[
             {
               name: 'Voice Service Tester',
-              path: '/voice-tester',
+              path: '/sadmin/tools/voice-tester',
               description: 'Test STT/TTS functionality and Arabic voice processing',
               icon: <AudioIcon className="h-5 w-5" />,
               color: 'bg-blue-500'
             },
             {
               name: 'Survey Management',
-              path: '/survey-management',
+              path: '/hospital/templates',
               description: 'Create, edit and test healthcare survey templates',
               icon: <PieChartIcon className="h-5 w-5" />,
               color: 'bg-green-500'
             },
             {
               name: 'Campaign Simulator',
-              path: '/campaign',
+              path: '/sadmin/tools/campaign-simulator',
               description: 'Run and monitor automated voice survey campaigns',
               icon: <PhoneIcon className="h-5 w-5" />,
               color: 'bg-orange-500'
             },
             {
               name: 'Demo Test Call',
-              path: '/demo-test-call',
+              path: '/sadmin/tools/demo-test-call',
               description: 'Test individual phone call functionality',
               icon: <PhoneIcon className="h-5 w-5" />,
               color: 'bg-purple-500'
             },
             {
               name: 'Agent Configuration',
-              path: '/agent-configuration',
+              path: '/sadmin/tools/agent-config',
               description: 'Configure AI agent behavior and responses',
               icon: <SettingsIcon className="h-5 w-5" />,
               color: 'bg-indigo-500'
             },
             {
               name: 'Telephony Settings',
-              path: '/telephony-settings',
+              path: '/sadmin/tools/telephony',
               description: 'Configure Maqsam integration and phone settings',
               icon: <PhoneIcon className="h-5 w-5" />,
               color: 'bg-red-500'
@@ -563,23 +539,21 @@ export default function SuperAdminDashboard() {
             { text: 'Execute healthcare survey flows', status: 'available' }
           ].map((item, index) => (
             <div key={index} className="flex items-center gap-3">
-              <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
-                item.status === 'completed' ? 'bg-green-100 text-green-600' :
+              <div className={`h-5 w-5 rounded-full flex items-center justify-center ${item.status === 'completed' ? 'bg-green-100 text-green-600' :
                 item.status === 'available' ? 'bg-blue-100 text-blue-600' :
-                'bg-gray-100 text-gray-400'
-              }`}>
+                  'bg-gray-100 text-gray-400'
+                }`}>
                 {item.status === 'completed' ?
                   <CheckCircleIcon className="h-3 w-3" /> :
                   item.status === 'available' ?
-                  <PlayIcon className="h-3 w-3" /> :
-                  <div className="h-2 w-2 rounded-full bg-current"></div>
+                    <PlayIcon className="h-3 w-3" /> :
+                    <div className="h-2 w-2 rounded-full bg-current"></div>
                 }
               </div>
-              <span className={`text-sm ${
-                item.status === 'completed' ? 'text-green-700 dark:text-green-300' :
+              <span className={`text-sm ${item.status === 'completed' ? 'text-green-700 dark:text-green-300' :
                 item.status === 'available' ? 'text-blue-700 dark:text-blue-300' :
-                'text-gray-600 dark:text-gray-400'
-              }`}>
+                  'text-gray-600 dark:text-gray-400'
+                }`}>
                 {item.text}
               </span>
             </div>

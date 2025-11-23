@@ -9,6 +9,8 @@ const authTokenSchema = z.object({
 });
 
 // Voice service configuration
+// Note: In Railway, use the internal service URL (e.g., http://voice-service.railway.internal:8000)
+// for faster, secure communication between services.
 const VOICE_SERVICE_URL = process.env.VOICE_SERVICE_URL || 'http://localhost:8000';
 const VOICE_SERVICE_SECRET = process.env.VOICE_SERVICE_SECRET;
 
@@ -134,16 +136,37 @@ export async function POST(request: NextRequest) {
 
 async function generateTestAudio(clientInfo: { id: string; name: string; permissions: { voice_calls: boolean } }) {
   try {
-    // For now, return a mock response since the actual voice generation
-    // would be handled by the Python service
-    const mockAudioUrl = `https://example.com/generated-audio-${Date.now()}.wav`;
+    if (!VOICE_SERVICE_SECRET) {
+      throw new Error('Voice service secret not configured');
+    }
+
+    // Call Python Voice Service
+    const response = await fetch(`${VOICE_SERVICE_URL}/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VOICE_SERVICE_SECRET}`
+      },
+      body: JSON.stringify({
+        text: 'مرحباً، هذا اختبار لنظام الصوت الطبي', // "Hello, this is a test of the medical voice system"
+        language: 'ar'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Voice service TTS failed: ${response.status}`);
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    const base64Audio = Buffer.from(audioBuffer).toString('base64');
+    const audioUrl = `data:audio/wav;base64,${base64Audio}`;
 
     return NextResponse.json({
       success: true,
-      audioUrl: mockAudioUrl,
+      audioUrl: audioUrl,
       clientId: clientInfo.id,
       clientName: clientInfo.name,
-      message: 'Test audio generated successfully (mock response)',
+      message: 'Test audio generated successfully',
       timestamp: new Date().toISOString()
     });
   } catch (error) {

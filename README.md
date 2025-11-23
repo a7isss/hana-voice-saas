@@ -1,399 +1,76 @@
-# Hana Voice SaaS - Arabic Script Management System
+# Hana Voice SaaS - Arabic Healthcare Voice Automation
 
-![Hana Voice SaaS Dashboard](./banner.png)
+Hana Voice SaaS is a comprehensive, AI-powered voice automation platform designed specifically for the Saudi Arabian healthcare market. It enables hospitals to automate patient interactions, surveys, and appointment scheduling using natural Arabic voice conversations.
 
-**Status: 🚀 PRODUCTION DEPLOYED - AGENT CONFIGURATION & ARABIC VOICE PROCESSING**
+## 🚀 Project Status: MVP Ready
 
-**📚 Documentation Navigation:**
+The project has reached MVP status with the following core features enabled:
 
-| Overview | Technical Details | Development |
-|----------|-------------------|-------------|
-| [README.md](README.md) | [memory-bank/](memory-bank/) | [SETUP_GUIDE.md](SETUP_GUIDE.md) |
-| Main overview & deployment | Complete architecture & design | Development environment |
-| status with agent configuration | patterns | & deployment procedures |
+-   **Frontend**: Next.js 15 App Router with a 3-basket route structure (`(public)`, `hospital/`, `sadmin/`).
+-   **Database**: Supabase (PostgreSQL) with a comprehensive, future-proof schema (`db/schema_mvp.sql`).
+-   **Voice Service**: Python FastAPI service with WebSocket support for real-time Arabic STT/TTS and Maqsam telephony integration.
+-   **Authentication**: Custom RBAC system (Super Admin, Hospital Admin, Staff) integrated with Supabase.
 
----
+## 📂 Project Structure
 
-Visit the live application: [https://hana-voice-saas.onrender.com](https://hana-voice-saas.onrender.com)
+-   `src/app/(public)`: Public-facing pages (Landing, Auth).
+-   `src/app/hospital`: Hospital Dashboard and tools (Campaigns, Reports, Templates).
+-   `src/app/sadmin`: Super Admin Dashboard and system management tools.
+-   `src/app/api`: Next.js API routes (Voice proxy, Dashboard data aggregation).
+-   `Python/voice_service`: Core voice processing service (FastAPI, Vosk, Coqui TTS).
+-   `db`: Database schemas and migration scripts.
+-   `docs/archive`: Archived documentation and planning files.
 
-## About Hana Voice SaaS - Arabic Voice Script Management
+## 🛠️ Quick Start
 
-Hana Voice SaaS is a complete Arabic voice service platform featuring **intelligent script management with agent configuration and Maqsam telephony integration**:
+### Prerequisites
 
-1. **🤖 Agent Configuration** - Arabic conversation script creation and management
-2. **🎭 Calling Robot** - Professional Arabic voice calls with script playback
-3. **🎵 Voice Tester** - Real-time script testing with voice synthesis and recognition
+-   Node.js 18+
+-   Python 3.10+
+-   Supabase Project
+-   Railway Account (for deployment)
 
-### ✅ DEPLOYMENT COMPLETE (October 29, 2025)
-- ✅ **Script Management System**: Full CRUD operations for Arabic conversation scripts
-- ✅ **Voice Memory Integration**: Scripts maintain context and adapt responses
-- ✅ **Agent Configuration**: Voice tester seamlessly integrates with script management
-- ✅ **Maqsam Telephony**: Pre-shared token authentication for healthcare communications
-- ✅ **Local Arabic Processing**: Vosk STT + Coqui TTS for cost-effective voice processing
-- ✅ **Supabase Integration**: Persistent script storage with real-time synchronization
+### 1. Database Setup
 
-### 🏆 PRODUCTION READY
-- ✅ **Arabic Voice Service**: Local speech recognition and text-to-speech processing
-- ✅ **Healthcare Focus**: Maqsam integration for Saudi Arabian healthcare providers
-- ✅ **Script Intelligence**: Context-aware conversation flows with memory
-- ✅ **Secure Architecture**: Pre-shared token authentication system
-- ✅ **Real-time Processing**: WebSocket connections for live voice interactions
+1.  Create a new Supabase project.
+2.  Run the SQL script `db/schema_mvp.sql` in the Supabase SQL Editor to create tables and policies.
+3.  Get your `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
-## Core Business Functions - New Workflow
+### 2. Environment Setup
 
-### 🎵 1. Audio Set Creation (File: audio-conversion)
-- **Purpose**: Convert JSON survey templates into structured audio sets
-- **Input**: JSON questions file + configuration settings
-- **Process**: Generate intro/outro + question sequence automatically
-- **Output**: Saved audio set in Supabase with full metadata
-- **Features**: Department selection, language support, timing configuration
+Create a `.env` file in the root directory:
 
-### 📞 2. Demo/Test Call (File: demo-test-call)
-- **Purpose**: Test audio sets with live call simulation
-- **Input**: Phone number + selected audio set from dropdown
-- **Process**: Load saved audio set, simulate call workflow
-- **Output**: Call results, response tracking, connectivity testing
-- **Features**: Audio set preview, real-time status updates
-
-### 📊 3. Batch Calling (File: calling-robot)
-- **Purpose**: Excel upload + audio set selection for mass patient outreach
-- **Input**: Excel file + selected audio set + call parameters
-- **Process**: Automated calling with progress tracking
-- **Output**: Call statistics, success rates, detailed reporting
-- **Features**: Real-time progress bars, failed call retry logic
-
-## Key Features
-
-- **Audio Set Management**: Complete CRUD operations for voice survey templates
-- **Automated Voice Calls**: AI-powered Arabic voice calls to patients (Phase 2)
-- **Health Survey Automation**: Voice-based data collection in Arabic (Phase 2)
-- **Real-time Analytics**: Excel exports with RTL Arabic formatting
-- **Multi-tenant Architecture**: Client-based healthcare organization isolation
-- **Scalable Next.js 15**: Built for healthcare industry demands
-
-## Technology Stack
-
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Supabase PostgreSQL
-- **Voice Processing**: Local Vosk Arabic STT + Coqui XTTS Arabic models
-- **Telephony**: Maqsam integration with pre-shared token auth
-- **Deployment**: Render platform
-- **Languages**: Arabic (RTL) + English support
-
-### Voice Model Configuration
-
-#### Model File Storage Locations
-- **Vosk Arabic STT Model**: `Python/voice_service/models/vosk-model-ar-0.22/`
-- **Coqui TTS Models**: Auto-downloaded to `Python/voice_service/models/tts/`
-- **Production Location**: Render persistent disk `/data/models/`}
-- **Model Size**: ~2.5GB total (Vosk + TTS on first load)
-- **Download**: Automatic on first startup request
-
-#### Model Directory Structure
-```
-Python/voice_service/models/
-├── vosk-model-ar-0.22/          # Arabic STT model (~500MB)
-│   ├── am/                      # Acoustic model
-│   ├── conf/                    # Configuration files
-│   ├── graph/                   # Language model (~2GB)
-│   ├── ivector/                 # Speaker identification
-│   └── rescore/                 # Grammar rescoring
-└── tts/                         # Coqui TTS cache (auto-created)
-    └── [downloaded_model_files]/ # Arabic voice models
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+VOICE_SERVICE_URL=http://localhost:8000
+VOICE_SERVICE_SECRET=your_secret_key
 ```
 
-## Quick Start
-
-### For Healthcare Clients
-
-1. **Access Dashboard**: Visit https://hana-voice-saas.onrender.com
-2. **Healthcare Login**: Use test client ID `test_client_123`
-3. **Upload Patient List**: Excel file with patient contact information
-4. **Configure Survey**: Set up Arabic voice survey parameters
-5. **Initiate Calls**: Automated outreach to patient database
-6. **View Analytics**: Real-time call tracking and survey responses
-
-### For Developers (Local Development)
+### 3. Run Voice Service (Python)
 
 ```bash
-# Clone repository
-git clone https://github.com/a7isss/hana-voice-saas.git
-cd hana-voice-saas
+cd Python/voice_service
+pip install -r requirements.txt
+python -m app.main
+```
 
-# Install dependencies
+### 4. Run Frontend (Next.js)
+
+```bash
 npm install
-
-# Configure environment (see .env.local.example)
-cp .env.local.example .env.local
-
-# Start development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+Visit `http://localhost:3000` to access the application.
 
-## Environment Variables & Model Configuration
+## 🔑 Key Features
 
-### Required Environment Variables
+-   **Smart Campaigns**: Create and manage automated calling campaigns.
+-   **Real-time Dashboard**: Monitor call progress, success rates, and patient responses.
+-   **Arabic Voice AI**: Native support for Saudi dialect speech recognition and synthesis.
+-   **Telephony Integration**: Ready for Maqsam integration for PSTN calls.
 
-Before running the application, copy `.env.local.example` to `.env.local` and configure these required variables:
+## 📚 Documentation
 
-1. **Copy the example file:**
-   ```bash
-   cp .env.example .env.local
-   ```
-
-2. **Configure Supabase (Required):**
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-   Get these from your [Supabase project dashboard](https://supabase.com/dashboard).
-
-3. **Configure JWT Security (Required):**
-   ```env
-   JWT_SECRET_KEY=your_secure_random_jwt_secret_key
-   ```
-   Generate a secure random string for JWT token signing.
-
-#### Optional Variables
-```env
-# Admin access for development/testing
-ADMIN_USERNAME=hana_admin
-ADMIN_PASSWORD=secure_password
-
-# OpenAI integration
-OPENAI_API_KEY=sk-your_openai_key
-OPENAI_MODEL=tts-1
-
-# Voice service communication
-VOICE_SERVICE_URL=http://localhost:8000
-VOICE_SERVICE_SECRET=your_voice_service_secret
-
-# Telephony integration
-FREEPBX_HOST=your_freepbx_host
-FREEPBX_USERNAME=username
-FREEPBX_PASSWORD=password
-```
-
-### Database Configuration
-
-#### Supabase Setup
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Go to Settings → API to get your URL and anon key
-3. Run the SQL schema from `supabase_schema.sql`:
-   ```sql
-   -- Execute in Supabase SQL Editor or via CLI
-   \i supabase_schema.sql
-   ```
-
-#### Required Tables
-The application requires these core tables:
-- `clients` - Healthcare organizations
-- `customers` - Patients/patients
-- `call_logs` - Call tracking records
-- `survey_responses` - Health survey data
-- `audio_sets` - Voice survey templates
-- `company_greetings` - Hospital branding messages
-
-### Authentication Setup
-
-#### Client Authentication
-Healthcare organizations authenticate using API keys:
-```typescript
-// Example authentication request
-{
-  "action": "authenticate",
-  "clientId": "test_client_123",
-  "apiKey": "your_api_key_here"
-}
-```
-
-#### Admin Access (Development)
-For administrative functions during development:
-```env
-ADMIN_USERNAME=hana_admin
-ADMIN_PASSWORD=secure_password_123
-```
-
-### Voice Service Configuration
-
-#### Python Voice Service
-The FastAPI voice service handles audio processing:
-```bash
-# Install Python dependencies
-cd Python/voice_service
-pip install -r requirements.txt
-
-# Start voice service
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-#### Environment Variables
-```env
-VOICE_SERVICE_URL=http://localhost:8000
-VOICE_SERVICE_SECRET=secure_voice_service_key
-```
-
-### Security Considerations
-
-#### Environment Variable Security
-- Never commit `.env.local` files to version control
-- Use different values for development/staging/production
-- Rotate JWT secrets regularly
-- Use strong, unique passwords for admin access
-
-#### API Security
-- All API endpoints require authentication
-- Client data is isolated by tenant ID
-- Rate limiting prevents abuse
-- Sensitive data is encrypted in transit
-
-## Production Architecture
-
-### API Endpoints (All Deployed & Functional)
-- **`GET /api/auth`** - Authentication & health checks ✅
-- **`POST /api/auth`** - Client authentication ✅
-- **`GET /api/voice`** - Voice service status ✅
-- **`GET /api/data`** - Data export functionality ✅
-- **`GET /api/telephony`** - Call automation ready ✅
-
-### Database Schema
-```sql
--- Core healthcare tables deployed
-- clients (healthcare organizations)
-- customers (patients/patients)
-- call_logs (call tracking)
-- survey_responses (health data)
-```
-
-### Authentication System
-- **Multi-tenant**: Client-based isolation
-- **API Key**: Secure authentication
-- **Test Credentials**: `test_client_123`
-
-## Healthcare Impact & Compliance
-
-### Saudi Arabia Healthcare Focus
-- **Arabic Language First**: Voice processing in Gulf Arabic
-- **RTL Excel Exports**: Proper Arabic text formatting
-- **Healthcare Standards**: Designed for Saudi medical requirements
-- **Data Privacy**: HIPAA-ready architecture foundation
-
-### Medical Specialties Supported
-- Cardiology, Dermatology, Endocrinology
-- Emergency Medicine, ENT, General Practice
-- Laboratory, Neurology, Obstetrics/Gynecology
-- Oncology, Ophthalmology, Orthopedics
-- Pediatrics, Psychiatry, Radiology, Surgery, Urology
-
-## Development & Documentation
-
-### Memory Bank System (Structured Technical Documentation)
-- **`memory-bank/projectbrief.md`** - Core mission and scope
-- **`memory-bank/productContext.md`** - Business value and healthcare impact
-- **`memory-bank/systemPatterns.md`** - Architecture patterns and design
-- **`memory-bank/techContext.md`** - Technology stack details
-- **`memory-bank/activeContext.md`** - Current development status
-- **`memory-bank/progress.md`** - Achievement tracking
-
-### Technical Documentation
-- **`SETUP_GUIDE.md`** - Comprehensive development setup and deployment
-- **`PROJECT_DOCUMENTATION.md`** - Complete technical API reference
-- **`memory-bank/systemPatterns.md`** - Architecture patterns and design decisions
-- **`memory-bank/techContext.md`** - Technology stack implementation details
-
-### Current Status
-- **GOLDEN NUGGET Confirmed**: Production deployment achieved (October 13, 2025)
-- **API Health**: All endpoints fully functional (100% pass rate)
-- **Database**: Live Supabase PostgreSQL with real-time capabilities
-
-## API Health Monitoring
-
-All endpoints are live and monitored:
-
-```bash
-# Health Check Results (October 13, 2025)
-✅ /api/auth      → 200 OK (Authentication healthy)
-✅ /api/voice     → 200 OK (OpenAI services ready)
-✅ /api/data      → 200 OK (Excel generation functional)
-✅ /api/telephony → 200 OK (Call automation prepared)
-✅ /api/status   → 200 OK (Overall system health)
-```
-
-## Environment Configuration
-
-### Production Variables (Render)
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://piyrtitsyhesufkceqyy.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeXJ0aXRzeWhlc3Vma2djZXF5eSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzU4Njk5NzU4LCJleHAiOjIwNzQyNzU3NTh9.Egoc-crtscBcWMzO9aH5VEp4_9Y5upS3Ae5zTGUE5Lc
-JWT_SECRET_KEY=hana-voice-saas-secret-key-2025
-NEXT_PUBLIC_API_URL=https://hana-voice-saas.onrender.com
-NODE_ENV=production
-```
-
-### Local Development
-See `.env.local.example` for required local variables.
-
-## Deployment & Maintenance
-
-### Production Deployment
-- **Platform**: Render.com
-- **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm start`
-- **Health Check**: `/api/auth`
-- **Uptime**: 99.9% target for healthcare systems
-
-### Database Management
-- **Provider**: Supabase PostgreSQL
-- **Real-time**: Enabled for call monitoring
-- **Backup**: Automated daily backups
-- **Security**: RLS (Row Level Security) implemented
-
-### Monitoring & Support
-- **Health Endpoints**: Real-time API monitoring
-- **Error Tracking**: Comprehensive logging
-- **Performance**: Response times monitored
-- **Support**: GitHub Issues for bug reports/feature requests
-
-## Contributing
-
-### Healthcare Integration
-We're looking to integrate with Saudi healthcare providers. If you're with:
-- Hospitals or clinics
-- Healthcare IT providers
-- Medical research organizations
-- Telemedicine platforms
-
-Contact us to discuss partnership opportunities.
-
-### Development Contributions
-We welcome technical contributions. See our documentation for:
-- Architecture patterns and standards
-- Code quality guidelines
-- Testing procedures
-- Security requirements
-
-## Security & Compliance
-
-- **Healthcare Data**: Designed with privacy in mind
-- **Arabic Language**: Native RTL support throughout
-- **Multi-tenancy**: Secure client data isolation
-- **API Security**: Authentication and rate limiting
-- **Healthcare Standards**: Saudi Arabian compliance focus
-
-## License
-
-This healthcare automation platform is proprietary software developed for Saudi Arabian healthcare providers.
-
-## Support
-
-- **Live Application**: https://hana-voice-saas.onrender.com
-- **Documentation**: Check `memory-bank/` and main documentation files
-- **Issues**: GitHub Issues for technical support
-- **Healthcare Integration**: Contact for partnership discussions
-
----
-
-## GOLDEN NUGGET CONFIRMED: October 13, 2025
-🚀 **Production Deployed** | 🏆 **MVP Complete** | 📊 **100% API Health** | 🌟 **Arabic Healthcare Ready**
+For historical context and detailed planning documents, check the `docs/archive` directory.
