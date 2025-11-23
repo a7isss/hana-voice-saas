@@ -47,6 +47,9 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
+      '@types/ws':
+        specifier: ^8.5.10
+        version: 8.18.1
       apexcharts:
         specifier: ^4.3.0
         version: 4.7.0
@@ -98,6 +101,9 @@ importers:
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.0
+      ws:
+        specifier: ^8.16.0
+        version: 8.18.3
       zod:
         specifier: ^3.25.76
         version: 3.25.76
