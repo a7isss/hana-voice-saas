@@ -19,7 +19,8 @@ import {
   BoxCubeIcon as CpuIcon,
   DownloadIcon as NetworkIcon,
   PageIcon as HardDriveIcon,
-  LockIcon as ShieldIcon
+  LockIcon as ShieldIcon,
+  UserIcon
 } from '../../../icons/index';
 
 interface ServiceStatus {
@@ -501,6 +502,20 @@ export default function SuperAdminDashboard() {
               description: 'Configure Maqsam integration and phone settings',
               icon: <PhoneIcon className="h-5 w-5" />,
               color: 'bg-red-500'
+            },
+            {
+              name: 'User Management',
+              path: '/sadmin/users',
+              description: 'Manage system users, roles and permissions',
+              icon: <UserIcon className="h-5 w-5" />,
+              color: 'bg-purple-500'
+            },
+            {
+              name: 'System Tests',
+              path: '/sadmin/tests',
+              description: 'Run automated tests and system diagnostics',
+              icon: <TestTubeIcon className="h-5 w-5" />,
+              color: 'bg-cyan-500'
             }
           ].map((tool, index) => (
             <Link
