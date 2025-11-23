@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-    CreditCardIcon,
-    ClockIcon,
-    CheckCircleIcon,
-    XCircleIcon,
-    ArrowRightIcon,
-    BoltIcon
-} from '../../../icons/index';
+    CreditCard,
+    Clock,
+    CheckCircle,
+    XCircle,
+    ArrowRight,
+    Zap
+} from 'lucide-react';
 
 interface Transaction {
     id: string;
@@ -70,10 +70,10 @@ export default function BillingPage() {
 
     const getTransactionIcon = (type: string) => {
         switch (type) {
-            case 'recharge': return <CreditCardIcon className="h-5 w-5 text-green-600" />;
-            case 'call_usage': return <BoltIcon className="h-5 w-5 text-blue-600" />;
-            case 'admin_adjustment': return <CheckCircleIcon className="h-5 w-5 text-purple-600" />;
-            default: return <ClockIcon className="h-5 w-5 text-gray-600" />;
+            case 'recharge': return <CreditCard className="h-5 w-5 text-green-600" />;
+            case 'call_usage': return <Zap className="h-5 w-5 text-blue-600" />;
+            case 'admin_adjustment': return <CheckCircle className="h-5 w-5 text-purple-600" />;
+            default: return <Clock className="h-5 w-5 text-gray-600" />;
         }
     };
 
@@ -92,7 +92,7 @@ export default function BillingPage() {
                     href="/hospital/billing/checkout"
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
                 >
-                    <CreditCardIcon className="h-4 w-4" />
+                    <CreditCard className="h-4 w-4" />
                     Buy Tokens
                 </Link>
             </div>
@@ -105,11 +105,11 @@ export default function BillingPage() {
                         <h2 className="text-4xl font-bold">{balance.toLocaleString()} <span className="text-xl font-normal">Tokens</span></h2>
                     </div>
                     <div className="bg-white/10 p-4 rounded-full">
-                        <BoltIcon className="h-10 w-10 text-white" />
+                        <Zap className="h-10 w-10 text-white" />
                     </div>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-sm text-blue-100">
-                    <CheckCircleIcon className="h-4 w-4" />
+                    <CheckCircle className="h-4 w-4" />
                     <span>1 Token = 1 Successful Call</span>
                 </div>
             </div>

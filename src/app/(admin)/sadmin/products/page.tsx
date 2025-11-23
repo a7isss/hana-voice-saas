@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeftIcon, BoxCubeIcon, PlusIcon, PencilIcon, TrashBinIcon, CheckCircleIcon, XCircleIcon } from '../../../../icons/index';
+import { ChevronLeft, Box, Plus, Pencil, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 interface Product {
     id: string;
@@ -127,7 +127,7 @@ export default function ProductsManagement() {
                         href="/sadmin"
                         className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                        <ChevronLeftIcon className="h-5 w-5" />
+                        <ChevronLeft className="h-5 w-5" />
                     </Link>
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -143,7 +143,7 @@ export default function ProductsManagement() {
                     onClick={() => handleOpenModal()}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
                 >
-                    <PlusIcon className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
                     Add Product
                 </button>
             </div>
@@ -181,7 +181,7 @@ export default function ProductsManagement() {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                                                <BoxCubeIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                <Box className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                             </div>
                                             <div className="ml-4">
                                                 <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -203,8 +203,8 @@ export default function ProductsManagement() {
                                         <button
                                             onClick={() => handleToggleActive(product)}
                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.is_active
-                                                    ? 'bg-green-100 text-green-800 cursor-pointer hover:bg-green-200'
-                                                    : 'bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200'
+                                                ? 'bg-green-100 text-green-800 cursor-pointer hover:bg-green-200'
+                                                : 'bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200'
                                                 }`}
                                         >
                                             {product.is_active ? 'Active' : 'Inactive'}
@@ -216,13 +216,13 @@ export default function ProductsManagement() {
                                                 onClick={() => handleOpenModal(product)}
                                                 className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                                             >
-                                                <PencilIcon className="h-4 w-4" />
+                                                <Pencil className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(product.id)}
                                                 className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                                             >
-                                                <TrashBinIcon className="h-4 w-4" />
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
                                     </td>
